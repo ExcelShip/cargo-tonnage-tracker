@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cargo Tracker">
+<title>Cargo Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0d0f12;
+    --bg2: #13161b;
+    --bg3: #1a1e25;
+    --bg4: #21262f;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8eaf0;
+    --text2: #8a909e;
+    --text3: #545b6a;
+    --accent: #3b82f6;
+    --accent2: #1d4ed8;
+    --accent-dim: rgba(59,130,246,0.15);
+    --green: #10b981;
+    --green-dim: rgba(16,185,129,0.15);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245,158,11,0.15);
+    --coral: #ef4444;
+    --coral-dim: rgba(239,68,68,0.12);
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.15);
+    --teal: #2dd4bf;
+    --teal-dim: rgba(45,212,191,0.15);
+    --radius: 10px;
+    --radius-sm: 6px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overscroll-behavior: none;
+  }
+
+  /* ── SPLASH ── */
+  #splash {
+    position: fixed; inset: 0; background: var(--bg);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 1000; padding: 2rem; transition: opacity 0.4s;
+  }
+  #splash.hidden { opacity: 0; pointer-events: none; }
+  .splash-logo {
+    width: 64px; height: 64px; border-radius: 16px;
+    background: var(--accent-dim); border: 1px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 1.5rem; font-size: 28px;
+  }
+  .splash-title { font-size: 22px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .splash-sub { font-size: 14px; color: var(--text2); margin-bottom: 2.5rem; text-align: center; line-height: 1.5; }
+
+  .drop-zone {
+    width: 100%; max-width: 360px;
+    border: 1.5px dashed var(--border2);
+    border-radius: var(--radius);
+    padding: 2rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg2);
+  }
+  .drop-zone.drag { border-color: var(--accent); background: var(--accent-dim); }
+  .drop-zone-icon { font-size: 32px; margin-bottom: 10px; }
+  .drop-zone-label { font-size: 14px; color: var(--text2); }
+  .drop-zone-label span { color: var(--accent); font-weight: 500; }
+  .drop-zone-hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  #fileInput { display: none; }
+
+  .parsing-state { text-align: center; padding: 1.5rem; }
+  .spinner {
+    width: 32px; height: 32px; border: 2px solid var(--border2);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── APP SHELL ── */
+  #app { display: none; flex-direction: column; height: 100dvh; height: 100vh; }
+  #app.show { display: flex; }
+
+  /* ── TOP BAR ── */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: env(safe-area-inset-top, 0) 0 0;
+    flex-shrink: 0;
+  }
+  .topbar-inner {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px;
+  }
+  .topbar-logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: var(--accent-dim); border: 1px solid rgba(59,130,246,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+  }
+  .topbar-title { font-size: 16px; font-weight: 600; flex: 1; }
+  .topbar-date { font-size: 11px; color: var(--text3); font-family: var(--mono); }
+  .import-btn {
+    background: var(--bg4); border: 1px solid var(--border2);
+    color: var(--text2); border-radius: var(--radius-sm);
+    padding: 6px 10px; font-size: 12px; font-family: var(--font);
+    cursor: pointer; display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s; flex-shrink: 0;
+  }
+  .import-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat-cell {
+    background: var(--bg2); padding: 10px 12px; text-align: center;
+  }
+  .stat-n { font-size: 20px; font-weight: 600; color: var(--text); font-family: var(--mono); }
+  .stat-l { font-size: 10px; color: var(--text3); margin-top: 1px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+  /* ── SEARCH & FILTERS ── */
+  .search-wrap {
+    padding: 10px 12px 0;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .search-box {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 0 12px;
+    margin-bottom: 10px;
+  }
+  .search-box svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--text3); }
+  .search-box input {
+    flex: 1; background: none; border: none; outline: none;
+    color: var(--text); font-size: 14px; font-family: var(--font);
+    padding: 9px 0;
+  }
+  .search-box input::placeholder { color: var(--text3); }
+  .clear-btn {
+    background: none; border: none; cursor: pointer;
+    color: var(--text3); padding: 4px; display: none; align-items: center;
+  }
+  .clear-btn.show { display: flex; }
+
+  .filter-scroll {
+    display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px;
+    scrollbar-width: none;
+  }
+  .filter-scroll::-webkit-scrollbar { display: none; }
+  .fpill {
+    font-size: 11px; padding: 5px 12px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg3);
+    color: var(--text2); cursor: pointer; white-space: nowrap;
+    transition: all 0.15s; font-family: var(--font);
+  }
+  .fpill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .tab {
+    flex: 1; text-align: center; padding: 10px 4px;
+    font-size: 12px; font-weight: 500; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.15s; background: none; border-top: none;
+    border-left: none; border-right: none; font-family: var(--font);
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-count {
+    display: inline-block; font-size: 10px; padding: 1px 5px;
+    border-radius: 10px; background: var(--bg4); margin-left: 4px;
+    font-family: var(--mono);
+  }
+  .tab.active .tab-count { background: var(--accent-dim); color: var(--accent); }
+
+  /* ── LISTS ── */
+  .list-wrap { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .list-wrap::-webkit-scrollbar { width: 3px; }
+  .list-wrap::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+  .empty-state {
+    padding: 3rem 1rem; text-align: center;
+    color: var(--text3); font-size: 14px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* ── VESSEL ROW ── */
+  .vessel-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    cursor: pointer; transition: background 0.1s; background: var(--bg);
+  }
+  .vessel-row:active { background: var(--bg3); }
+
+  .dwt-badge {
+    width: 44px; height: 44px; border-radius: 8px;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; font-family: var(--mono);
+    font-size: 11px; font-weight: 500; flex-shrink: 0; line-height: 1.2;
+  }
+  .dwt-badge.hs { background: var(--green-dim); color: var(--green); }
+  .dwt-badge.hm { background: var(--accent-dim); color: var(--accent); }
+  .dwt-badge.sm { background: var(--purple-dim); color: var(--purple); }
+  .dwt-badge.pm { background: var(--amber-dim); color: var(--amber); }
+  .dwt-badge.cp { background: var(--coral-dim); color: var(--coral); }
+  .dwt-badge.uk { background: var(--bg4); color: var(--text3); }
+
+  .vessel-info { flex: 1; min-width: 0; }
+  .vessel-name {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .vessel-meta { font-size: 11px; color: var(--text3); margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .vessel-meta span { display: flex; align-items: center; gap: 3px; }
+
+  .vessel-open { text-align: right; flex-shrink: 0; }
+  .open-date { font-size: 12px; font-weight: 500; color: var(--text); font-family: var(--mono); }
+  .open-port { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .status-pill {
+    font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-top: 3px;
+    display: inline-block; font-family: var(--mono);
+  }
+  .status-spot { background: var(--green-dim); color: var(--green); }
+  .status-subs { background: var(--amber-dim); color: var(--amber); }
+  .status-update { background: var(--coral-dim); color: var(--coral); }
+
+  /* ── CARGO ROW ── */
+  .cargo-row {
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .cargo-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .cargo-account { font-size: 13px; font-weight: 500; color: var(--text); }
+  .cargo-type-badge {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    font-family: var(--mono); flex-shrink: 0;
+  }
+  .tct-badge { background: var(--accent-dim); color: var(--accent); }
+  .voy-badge { background: var(--teal-dim); color: var(--teal); }
+  .cargo-details { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .cargo-route { font-size: 11px; color: var(--text3); margin-top: 3px; display: flex; align-items: center; gap: 4px; }
+  .cargo-pills { display: flex; gap: 5px; margin-top: 7px; flex-wrap: wrap; }
+  .cpill {
+    font-size: 10px; padding: 2px 7px; border-radius: 10px;
+    background: var(--bg4); color: var(--text3); font-family: var(--mono);
+  }
+
+  /* ── DETAIL VIEW ── */
+  #detail { display: none; flex-direction: column; height: 100dvh; height: 100vh; }
+  #detail.show { display: flex; }
+
+  .detail-topbar {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: env(safe-area-inset-top, 0) 0 0; flex-shrink: 0;
+  }
+  .detail-topbar-inner {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  }
+  .back-btn {
+    background: var(--bg4); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); padding: 6px 10px;
+    color: var(--text2); font-size: 13px; cursor: pointer;
+    display: flex; align-items: center; gap: 5px;
+    font-family: var(--font); transition: all 0.15s;
+  }
+  .back-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .detail-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px; }
+
+  .detail-header {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px; margin-bottom: 12px;
+  }
+  .detail-vessel-name { font-size: 18px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .detail-owner { font-size: 13px; color: var(--text2); margin-bottom: 12px; }
+
+  .detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .detail-stat {
+    background: var(--bg3); border-radius: var(--radius-sm); padding: 10px 12px;
+  }
+  .detail-stat-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .detail-stat-value { font-size: 15px; font-weight: 500; color: var(--text); font-family: var(--mono); }
+
+  .detail-comments {
+    background: var(--bg3); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin-top: 8px;
+    font-size: 12px; color: var(--text2); line-height: 1.5;
+  }
+
+  .section-header {
+    font-size: 11px; font-weight: 500; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin: 16px 0 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-header::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  .match-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+  }
+  .match-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
+  .match-account { font-size: 13px; font-weight: 500; color: var(--text); }
+  .match-cargo { font-size: 12px; color: var(--text2); margin-bottom: 4px; }
+  .match-route { font-size: 11px; color: var(--text3); display: flex; align-items: center; gap: 4px; }
+  .match-pills { display: flex; gap: 5px; margin-top: 8px; flex-wrap: wrap; }
+
+  .no-match { font-size: 13px; color: var(--text3); text-align: center; padding: 1.5rem 0; }
+
+  /* ── SIZE LEGEND ── */
+  .legend {
+    display: flex; gap: 6px; padding: 8px 14px;
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    overflow-x: auto; flex-shrink: 0; scrollbar-width: none;
+  }
+  .legend::-webkit-scrollbar { display: none; }
+  .legend-item { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--text3); white-space: nowrap; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+    left: 50%; transform: translateX(-50%) translateY(80px);
+    background: var(--bg3); border: 1px solid var(--border2);
+    border-radius: 20px; padding: 10px 18px;
+    font-size: 13px; color: var(--text); z-index: 999;
+    transition: transform 0.3s; white-space: nowrap;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── REGION SECTION DIVIDERS ── */
+  .region-divider {
+    padding: 6px 14px; background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    font-size: 10px; font-weight: 500; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.08em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .region-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* safe area bottom */
+  .safe-bottom { height: env(safe-area-inset-bottom, 0px); background: var(--bg2); flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH / IMPORT SCREEN -->
+<div id="splash">
+  <div class="splash-logo">⚓</div>
+  <div class="splash-title">Cargo Tracker</div>
+  <div class="splash-sub">Internal tonnage & cargo monitor.<br>Drop your Daily List to get started.</div>
+
+  <div class="drop-zone" id="dropZone">
+    <div id="dropContent">
+      <div class="drop-zone-icon">📂</div>
+      <div class="drop-zone-label">Drop <span>Daily_List.xlsx</span> here</div>
+      <div class="drop-zone-label" style="margin-top:6px;">or <span onclick="document.getElementById('fileInput').click()" style="cursor:pointer;">browse file</span></div>
+      <div class="drop-zone-hint">Reads TONNAGE, CARGO-TCT and CARGO-VOY sheets</div>
+    </div>
+    <div id="parsingContent" class="parsing-state" style="display:none;">
+      <div class="spinner"></div>
+      <div style="font-size:13px;color:var(--text2);" id="parsingLabel">Parsing file…</div>
+    </div>
+  </div>
+  <input type="file" id="fileInput" accept=".xlsx">
+
+  <div id="importError" style="display:none;margin-top:14px;background:var(--coral-dim);border:1px solid var(--coral);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--coral);max-width:360px;width:100%;text-align:center;"></div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-logo">⚓</div>
+      <div style="flex:1;">
+        <div class="topbar-title">Cargo Tracker</div>
+        <div class="topbar-date" id="topDate"></div>
+      </div>
+      <button class="import-btn" onclick="reImport()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        Import
+      </button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-n" id="statVessels">0</div>
+      <div class="stat-l">Vessels</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-n" id="statTCT">0</div>
+      <div class="stat-l">TCT Orders</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-n" id="statVOY">0</div>
+      <div class="stat-l">VOY Orders</div>
+    </div>
+  </div>
+
+  <div class="search-wrap">
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="Search vessel, port, owner, cargo…" oninput="onSearch()">
+      <button class="clear-btn" id="clearBtn" onclick="clearSearch()" aria-label="Clear search">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="filter-scroll" id="filterRow"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-tonnage" onclick="setTab('tonnage')">
+      Tonnage <span class="tab-count" id="cnt-tonnage">0</span>
+    </button>
+    <button class="tab" id="tab-tct" onclick="setTab('tct')">
+      Cargo TCT <span class="tab-count" id="cnt-tct">0</span>
+    </button>
+    <button class="tab" id="tab-voy" onclick="setTab('voy')">
+      Cargo VOY <span class="tab-count" id="cnt-voy">0</span>
+    </button>
+  </div>
+
+  <div class="legend" id="dwtLegend">
+    <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div>&lt;30k Handysize</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div>30–44k Handymax</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;"></div>45–64k Supramax</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div>65–81k Panamax</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div>82k+ Capesize</div>
+  </div>
+
+  <div class="list-wrap" id="listWrap"></div>
+  <div class="safe-bottom"></div>
+</div>
+
+<!-- DETAIL VIEW -->
+<div id="detail">
+  <div class="detail-topbar">
+    <div class="detail-topbar-inner">
+      <button class="back-btn" onclick="goBack()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+        Back
+      </button>
+      <div style="font-size:13px;color:var(--text2);font-weight:500;" id="detailBreadcrumb"></div>
+    </div>
+  </div>
+  <div class="detail-scroll" id="detailScroll"></div>
+  <div class="safe-bottom"></div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STATE ──
+let vessels = [], tct = [], voy = [];
+let activeTab = 'tonnage';
+let activeRegion = 'all';
+let searchQuery = '';
+const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
+
+// ── HELPERS ──
+function parseDWT(raw) {
+  if (!raw) return null;
+  const n = String(raw).replace(/[^\d]/g, '');
+  const v = parseInt(n, 10);
+  return isNaN(v) ? null : v;
+}
+
+function dwtInfo(dwt) {
+  if (!dwt) return { cls: 'uk', label: '?', size: '—' };
+  if (dwt < 30000) return { cls: 'hs', label: (dwt/1000).toFixed(0)+'k', size: 'HS' };
+  if (dwt < 45000) return { cls: 'hm', label: (dwt/1000).toFixed(0)+'k', size: 'HM' };
+  if (dwt < 65000) return { cls: 'sm', label: (dwt/1000).toFixed(0)+'k', size: 'SM' };
+  if (dwt < 82000) return { cls: 'pm', label: (dwt/1000).toFixed(0)+'k', size: 'PM' };
+  return { cls: 'cp', label: (dwt/1000).toFixed(0)+'k', size: 'CP' };
+}
+
+function isRegionHeader(row) {
+  const f = String(row[0] || '').trim();
+  if (!f || f.startsWith('MV ') || f.startsWith('Daily') || f === 'Vessel Name' || f === 'ACCOUNT') return false;
+  const hasCols = row.slice(1, 6).some(c => c != null && String(c).trim() !== '');
+  return !hasCols && f.length > 1 && f.length < 40;
+}
+
+function getStatusClass(open, comments) {
+  if (!open) return '';
+  const u = open.toUpperCase();
+  const c = (comments || '').toUpperCase();
+  if (u === 'SPOT') return 'status-spot';
+  if (c.includes('SUBS') || u.includes('SUBS')) return 'status-subs';
+  return '';
+}
+
+function today() {
+  return new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── PARSERS ──
+function parseTonnageSheet(ws) {
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const result = [];
+  let region = '';
+  let started = false;
+  for (const row of rows) {
+    const f = String(row[0] || '').trim();
+    if (f === 'Vessel Name') { started = true; continue; }
+    if (!started) continue;
+    if (isRegionHeader(row)) { region = f.replace(/[–—-]/g, '-').trim(); continue; }
+    if (!f.startsWith('MV ')) continue;
+    result.push({
+      vesselName: f,
+      dwt: parseDWT(row[1]),
+      blt: row[2] ? parseInt(row[2]) : null,
+      bssPort: String(row[3] || '').trim(),
+      region: region || String(row[4] || '').trim(),
+      open: String(row[5] || '').trim(),
+      owner: String(row[6] || '').trim(),
+      comments: String(row[7] || '').trim(),
+      needsUpdate: String(row[9] || '').toLowerCase().includes('update'),
+      onSubs: String(row[9] || '').toLowerCase().includes('subs'),
+    });
+  }
+  return result;
+}
+
+function parseTCTSheet(ws) {
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const result = [];
+  let started = false;
+  for (const row of rows) {
+    const f = String(row[0] || '').trim();
+    if (f === 'ACCOUNT') { started = true; continue; }
+    if (!started) continue;
+    if (!f || f === 'Daily CGO List') continue;
+    if (isRegionHeader(row)) continue;
+    if (!row[2] && !row[3]) continue;
+    result.push({
+      account: f,
+      cargo: String(row[1] || '').trim(),
+      tonnage: String(row[2] || '').trim(),
+      delivery: String(row[3] || '').trim(),
+      redelivery: String(row[4] || '').trim(),
+      laycan: String(row[5] || '').trim(),
+      type: 'TCT',
+    });
+  }
+  return result;
+}
+
+function parseVOYSheet(ws) {
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: null });
+  const result = [];
+  let started = false;
+  for (const row of rows) {
+    const f = String(row[0] || '').trim();
+    if (f === 'ACCOUNT') { started = true; continue; }
+    if (!started) continue;
+    if (!f || f === 'Daily CGO List') continue;
+    if (isRegionHeader(row)) continue;
+    if (!row[1] && !row[2]) continue;
+    result.push({
+      account: f,
+      cargo: String(row[1] || '').trim(),
+      tonnage: String(row[2] || '').trim(),
+      loadPort: String(row[3] || '').trim(),
+      dischargePort: String(row[4] || '').trim(),
+      laycan: String(row[5] || '').trim(),
+      type: 'VOY',
+    });
+  }
+  return result;
+}
+
+function tonnageToRange(t) {
+  if (!t) return [0, 999999];
+  const s = t.toUpperCase();
+  if (s.includes('SMX') && s.includes('UMX')) return [40000, 70000];
+  if (s.includes('HMX')) return [50000, 85000];
+  if (s.includes('SMX')) return [40000, 65000];
+  if (s.includes('UMX')) return [55000, 70000];
+  const nums = t.match(/\d+/g);
+  if (nums && nums.length >= 2) return [parseInt(nums[0])*1000, parseInt(nums[1])*1000];
+  if (nums && nums.length === 1) { const v = parseInt(nums[0]); return [v*0.9, v*1.1]; }
+  return [0, 999999];
+}
+
+function cargoMatchesVessel(order, vessel) {
+  if (!vessel.dwt) return false;
+  const [lo, hi] = tonnageToRange(order.tonnage);
+  return vessel.dwt >= lo * 0.85 && vessel.dwt <= hi * 1.15;
+}
+
+// ── FILE PROCESSING ──
+function processFile(file) {
+  if (!file || !file.name.endsWith('.xlsx')) {
+    showError('Please upload a valid .xlsx file.'); return;
+  }
+  document.getElementById('dropContent').style.display = 'none';
+  document.getElementById('parsingContent').style.display = 'block';
+  document.getElementById('importError').style.display = 'none';
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      document.getElementById('parsingLabel').textContent = 'Reading sheets…';
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+
+      const tonnageWS = wb.Sheets['TONNAGE'];
+      if (!tonnageWS) throw new Error("Sheet 'TONNAGE' not found. Check the file.");
+
+      document.getElementById('parsingLabel').textContent = 'Parsing vessels…';
+      vessels = parseTonnageSheet(tonnageWS);
+
+      document.getElementById('parsingLabel').textContent = 'Parsing cargo orders…';
+      tct = wb.Sheets['CARGO - TCT'] ? parseTCTSheet(wb.Sheets['CARGO - TCT']) : [];
+      voy = wb.Sheets['CARGO - VOY'] ? parseVOYSheet(wb.Sheets['CARGO - VOY']) : [];
+
+      launchApp();
+    } catch(err) {
+      document.getElementById('dropContent').style.display = 'block';
+      document.getElementById('parsingContent').style.display = 'none';
+      showError(err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showError(msg) {
+  const el = document.getElementById('importError');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+
+function launchApp() {
+  document.getElementById('splash').classList.add('hidden');
+  const app = document.getElementById('app');
+  app.classList.add('show');
+
+  document.getElementById('topDate').textContent = today();
+  document.getElementById('statVessels').textContent = vessels.length;
+  document.getElementById('statTCT').textContent = tct.length;
+  document.getElementById('statVOY').textContent = voy.length;
+
+  buildFilters();
+  renderList();
+  showToast(`Loaded ${vessels.length} vessels · ${tct.length + voy.length} cargo orders`);
+}
+
+function reImport() {
+  document.getElementById('splash').classList.remove('hidden');
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('dropContent').style.display = 'block';
+  document.getElementById('parsingContent').style.display = 'none';
+  document.getElementById('importError').style.display = 'none';
+  document.getElementById('fileInput').value = '';
+  searchQuery = '';
+  activeRegion = 'all';
+  document.getElementById('searchInput').value = '';
+}
+
+// ── FILTERS ──
+function buildFilters() {
+  const regions = ['all', ...new Set(vessels.map(v => v.region).filter(Boolean))];
+  const ordered = ['all', ...REGIONS_ORDER.filter(r => regions.includes(r)),
+    ...regions.filter(r => r !== 'all' && !REGIONS_ORDER.includes(r))];
+  const unique = [...new Set(ordered)];
+
+  const labels = { 'all': 'All regions', 'WCI - PG': 'WCI–PG', 'R. SEA': 'R.Sea',
+    'ECI-BDESH': 'ECI–Bdesh', 'CHINA': 'China', 'VIETNAM': 'Vietnam',
+    'PACIFIC': 'Pacific', 'INDONESIA': 'Indonesia', 'MED': 'Med',
+    'AFRICA': 'Africa', 'ATLANTIC': 'Atlantic' };
+
+  const row = document.getElementById('filterRow');
+  row.innerHTML = unique.map(r =>
+    `<button class="fpill${r === activeRegion ? ' active' : ''}" onclick="setRegion('${r}',this)">${labels[r] || r}</button>`
+  ).join('');
+}
+
+function setRegion(r, el) {
+  activeRegion = r;
+  document.querySelectorAll('.fpill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderList();
+}
+
+function setTab(t) {
+  activeTab = t;
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + t).classList.add('active');
+  const legend = document.getElementById('dwtLegend');
+  legend.style.display = t === 'tonnage' ? 'flex' : 'none';
+  renderList();
+}
+
+function onSearch() {
+  searchQuery = document.getElementById('searchInput').value.toLowerCase();
+  document.getElementById('clearBtn').classList.toggle('show', searchQuery.length > 0);
+  renderList();
+}
+
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('clearBtn').classList.remove('show');
+  renderList();
+}
+
+// ── RENDER ──
+function renderList() {
+  const wrap = document.getElementById('listWrap');
+  wrap.innerHTML = '';
+
+  if (activeTab === 'tonnage') {
+    renderTonnage(wrap);
+  } else if (activeTab === 'tct') {
+    renderCargo(wrap, tct, 'TCT');
+  } else {
+    renderCargo(wrap, voy, 'VOY');
+  }
+}
+
+function renderTonnage(wrap) {
+  let filtered = vessels.filter(v => {
+    const rMatch = activeRegion === 'all' || v.region === activeRegion;
+    const qMatch = !searchQuery ||
+      v.vesselName.toLowerCase().includes(searchQuery) ||
+      (v.bssPort || '').toLowerCase().includes(searchQuery) ||
+      (v.owner || '').toLowerCase().includes(searchQuery) ||
+      (v.region || '').toLowerCase().includes(searchQuery);
+    return rMatch && qMatch;
+  });
+
+  document.getElementById('cnt-tonnage').textContent = filtered.length;
+
+  if (!filtered.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div>No vessels match your search</div>`;
+    return;
+  }
+
+  // Group by region if showing all
+  if (activeRegion === 'all' && !searchQuery) {
+    const groups = {};
+    for (const v of filtered) {
+      const r = v.region || 'Other';
+      if (!groups[r]) groups[r] = [];
+      groups[r].push(v);
+    }
+    const regionOrder = [...REGIONS_ORDER, ...Object.keys(groups).filter(r => !REGIONS_ORDER.includes(r))];
+    for (const r of regionOrder) {
+      if (!groups[r]) continue;
+      const div = document.createElement('div');
+      div.className = 'region-divider';
+      div.textContent = r;
+      wrap.appendChild(div);
+      for (const v of groups[r]) wrap.appendChild(vesselRow(v));
+    }
+  } else {
+    for (const v of filtered) wrap.appendChild(vesselRow(v));
+  }
+}
+
+function vesselRow(v) {
+  const info = dwtInfo(v.dwt);
+  const el = document.createElement('div');
+  el.className = 'vessel-row';
+
+  const statusCls = v.onSubs ? 'status-subs' : v.needsUpdate ? 'status-update' : getStatusClass(v.open, v.comments);
+  const statusLabel = v.onSubs ? 'On subs' : v.needsUpdate ? 'Update' : (v.open && v.open.toUpperCase() === 'SPOT' ? 'Spot' : '');
+
+  el.innerHTML = `
+    <div class="dwt-badge ${info.cls}">
+      <span>${info.label}</span>
+      <span style="font-size:9px;margin-top:1px;">${info.size}</span>
+    </div>
+    <div class="vessel-info">
+      <div class="vessel-name">${v.vesselName}</div>
+      <div class="vessel-meta">
+        <span>${v.owner || '—'}</span>
+        ${v.blt ? `<span>· ${v.blt}</span>` : ''}
+      </div>
+    </div>
+    <div class="vessel-open">
+      <div class="open-date">${v.open || '—'}</div>
+      <div class="open-port">${v.bssPort || ''}</div>
+      ${statusLabel ? `<div class="status-pill ${statusCls}">${statusLabel}</div>` : ''}
+    </div>`;
+  el.addEventListener('click', () => showDetail(v));
+  return el;
+}
+
+function renderCargo(wrap, orders, type) {
+  const countId = type === 'TCT' ? 'cnt-tct' : 'cnt-voy';
+  const filtered = orders.filter(o => {
+    if (!searchQuery) return true;
+    return (o.account || '').toLowerCase().includes(searchQuery) ||
+      (o.cargo || '').toLowerCase().includes(searchQuery) ||
+      (o.delivery || o.loadPort || '').toLowerCase().includes(searchQuery) ||
+      (o.redelivery || o.dischargePort || '').toLowerCase().includes(searchQuery) ||
+      (o.laycan || '').toLowerCase().includes(searchQuery);
+  });
+
+  document.getElementById(countId).textContent = filtered.length;
+
+  if (!filtered.length) {
+    wrap.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div>No ${type} orders match</div>`;
+    return;
+  }
+
+  for (const o of filtered) {
+    const el = document.createElement('div');
+    el.className = 'cargo-row';
+    const isTCT = type === 'TCT';
+    const route = isTCT ? `${o.delivery || '—'} → ${o.redelivery || '—'}` : `${o.loadPort || '—'} → ${o.dischargePort || '—'}`;
+    el.innerHTML = `
+      <div class="cargo-top">
+        <div class="cargo-account">${o.account}</div>
+        <span class="cargo-type-badge ${isTCT ? 'tct-badge' : 'voy-badge'}">${type}</span>
+      </div>
+      <div class="cargo-details">${o.cargo || '—'} · ${o.tonnage || '—'}</div>
+      <div class="cargo-route">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        ${route}
+      </div>
+      <div class="cargo-pills">
+        <span class="cpill">${o.laycan || '—'}</span>
+      </div>`;
+    wrap.appendChild(el);
+  }
+}
+
+// ── DETAIL ──
+function showDetail(vessel) {
+  document.getElementById('app').style.display = 'none';
+  const detail = document.getElementById('detail');
+  detail.classList.add('show');
+  document.getElementById('detailBreadcrumb').textContent = vessel.region || '';
+
+  const info = dwtInfo(vessel.dwt);
+
+  // Find matching cargo
+  const matchedTCT = tct.filter(o => cargoMatchesVessel(o, vessel));
+  const matchedVOY = voy.filter(o => cargoMatchesVessel(o, vessel));
+
+  const matchHTML = (orders, type) => {
+    if (!orders.length) return '';
+    const isTCT = type === 'TCT';
+    return orders.map(o => {
+      const route = isTCT
+        ? `${o.delivery || '—'} → ${o.redelivery || '—'}`
+        : `${o.loadPort || '—'} → ${o.dischargePort || '—'}`;
+      return `<div class="match-card">
+        <div class="match-top">
+          <div class="match-account">${o.account}</div>
+          <span class="cargo-type-badge ${isTCT ? 'tct-badge' : 'voy-badge'}">${type}</span>
+        </div>
+        <div class="match-cargo">${o.cargo || '—'} · ${o.tonnage || '—'}</div>
+        <div class="match-route">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          ${route}
+        </div>
+        <div class="match-pills">
+          <span class="cpill">${o.laycan || '—'}</span>
+        </div>
+      </div>`;
+    }).join('');
+  };
+
+  const totalMatches = matchedTCT.length + matchedVOY.length;
+
+  document.getElementById('detailScroll').innerHTML = `
+    <div class="detail-header">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+        <div class="detail-vessel-name">${vessel.vesselName}</div>
+        <div class="dwt-badge ${info.cls}" style="flex-shrink:0;">
+          <span>${info.label}</span>
+          <span style="font-size:9px;">${info.size}</span>
+        </div>
+      </div>
+      <div class="detail-owner">${vessel.owner || '—'}</div>
+      <div class="detail-grid">
+        <div class="detail-stat">
+          <div class="detail-stat-label">DWT</div>
+          <div class="detail-stat-value">${vessel.dwt ? vessel.dwt.toLocaleString() : '—'}</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-label">Built</div>
+          <div class="detail-stat-value">${vessel.blt || '—'}</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-label">Open port</div>
+          <div class="detail-stat-value" style="font-size:13px;">${vessel.bssPort || '—'}</div>
+        </div>
+        <div class="detail-stat">
+          <div class="detail-stat-label">Open date</div>
+          <div class="detail-stat-value" style="font-size:13px;">${vessel.open || '—'}</div>
+        </div>
+      </div>
+      ${vessel.comments ? `<div class="detail-comments">${vessel.comments}</div>` : ''}
+    </div>
+
+    <div class="section-header">Cargo matches (${totalMatches})</div>
+
+    ${totalMatches === 0
+      ? `<div class="no-match">No cargo orders match this vessel's DWT range</div>`
+      : matchHTML(matchedTCT, 'TCT') + matchHTML(matchedVOY, 'VOY')
+    }
+  `;
+}
+
+function goBack() {
+  document.getElementById('detail').classList.remove('show');
+  document.getElementById('app').style.display = 'flex';
+}
+
+// ── DRAG & DROP ──
+const dropZone = document.getElementById('dropZone');
+
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) processFile(file);
+});
+dropZone.addEventListener('click', () => document.getElementById('fileInput').click());
+
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) processFile(e.target.files[0]);
+});
+
+// Set date
+document.getElementById('topDate').textContent = today();
+</script>
+</body>
+</html>
