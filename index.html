@@ -268,15 +268,14 @@ async function fetchData() {
   document.getElementById('loadingStatus').textContent = 'Connecting to Daily List…';
 
   try {
-    document.getElementById('loadingStatus').textContent = 'Loading vessels…';
-    const tonnageRows = await fetchSheet(SHEET_NAMES.tonnage);
+    document.getElementById('loadingStatus').textContent = 'Loading data…';
+    const [tonnageRows, tctRows, voyRows] = await Promise.all([
+      fetchSheet(SHEET_NAMES.tonnage),
+      fetchSheet(SHEET_NAMES.tct),
+      fetchSheet(SHEET_NAMES.voy)
+    ]);
     vessels = parseTonnage(tonnageRows);
-
-    document.getElementById('loadingStatus').textContent = 'Loading cargo orders…';
-    const tctRows = await fetchSheet(SHEET_NAMES.tct);
     tct = parseTCT(tctRows);
-
-    const voyRows = await fetchSheet(SHEET_NAMES.voy);
     voy = parseVOY(voyRows);
 
     launchApp();
@@ -291,11 +290,13 @@ async function refreshData() {
   const btn = document.getElementById('refreshBtn');
   btn.classList.add('spinning');
   try {
-    const tonnageRows = await fetchSheet(SHEET_NAMES.tonnage);
+    const [tonnageRows, tctRows, voyRows] = await Promise.all([
+      fetchSheet(SHEET_NAMES.tonnage),
+      fetchSheet(SHEET_NAMES.tct),
+      fetchSheet(SHEET_NAMES.voy)
+    ]);
     vessels = parseTonnage(tonnageRows);
-    const tctRows = await fetchSheet(SHEET_NAMES.tct);
     tct = parseTCT(tctRows);
-    const voyRows = await fetchSheet(SHEET_NAMES.voy);
     voy = parseVOY(voyRows);
     updateStats();
     buildFilters();
