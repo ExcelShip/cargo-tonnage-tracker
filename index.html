@@ -349,29 +349,31 @@ function parseTonnage(rows) {
 }
 
 function parseTCT(rows) {
-  const result=[]; let started=false;
+  const result=[]; let started=false; let region='';
   for (const row of rows) {
     const f=String(row[0]||'').trim();
     if (f==='ACCOUNT'){started=true;continue;}
     if (!started||!f||f==='Daily CGO List') continue;
-    if (isRegionHeader(row)||(!row[2]&&!row[3])) continue;
+    if (isRegionHeader(row)){region=f.replace(/[^a-zA-Z0-9 .\-]/g,' ').replace(/\s+/g,' ').trim();continue;}
+    if (!row[2]&&!row[3]) continue;
     result.push({account:f,cargo:String(row[1]||'').trim(),tonnage:String(row[2]||'').trim(),
       delivery:String(row[3]||'').trim(),redelivery:String(row[4]||'').trim(),
-      laycan:String(row[5]||'').trim(),type:'TCT'});
+      laycan:String(row[5]||'').trim(),region,type:'TCT'});
   }
   return result;
 }
 
 function parseVOY(rows) {
-  const result=[]; let started=false;
+  const result=[]; let started=false; let region='';
   for (const row of rows) {
     const f=String(row[0]||'').trim();
     if (f==='ACCOUNT'){started=true;continue;}
     if (!started||!f||f==='Daily CGO List') continue;
-    if (isRegionHeader(row)||(!row[1]&&!row[2])) continue;
+    if (isRegionHeader(row)){region=f.replace(/[^a-zA-Z0-9 .\-]/g,' ').replace(/\s+/g,' ').trim();continue;}
+    if (!row[1]&&!row[2]) continue;
     result.push({account:f,cargo:String(row[1]||'').trim(),tonnage:String(row[2]||'').trim(),
       loadPort:String(row[3]||'').trim(),dischargePort:String(row[4]||'').trim(),
-      laycan:String(row[5]||'').trim(),type:'VOY'});
+      laycan:String(row[5]||'').trim(),region,type:'VOY'});
   }
   return result;
 }
@@ -389,10 +391,31 @@ function tonnageToRange(t) {
   return [0,999999];
 }
 
+function normalizeRegion(r) {
+  if (!r) return '';
+  const s = r.toUpperCase().replace(/[^A-Z0-9]/g,' ').replace(/\s+/g,' ').trim();
+  if (s.includes('WCI') || s.includes('PG')) return 'WCI-PG';
+  if (s.includes('R SEA') || s.includes('RED SEA') || s.includes('RSEA')) return 'RSEA';
+  if (s.includes('ECI') || s.includes('BDESH') || s.includes('BANGLADESH')) return 'ECI';
+  if (s.includes('CHINA') || s.includes('F EAST') || s.includes('JAPAN') || s.includes('KOREA') || s.includes('PACIFIC') || s.includes('N CHINA') || s.includes('S CHINA')) return 'FEASTCHINA';
+  if (s.includes('SE ASIA') || s.includes('VIETNAM') || s.includes('INDO') || s.includes('SINGAPORE') || s.includes('SPORE') || s.includes('MALAYSIA') || s.includes('CAMBODIA') || s.includes('HONG KONG')) return 'SEASIA';
+  if (s.includes('MED') || s.includes('TURKEY') || s.includes('ITALY') || s.includes('SPAIN') || s.includes('ALGERIA') || s.includes('LIBYA') || s.includes('BALTIC') || s.includes('RUSSIA') || s.includes('DENMARK')) return 'MED';
+  if (s.includes('AFRICA') || s.includes('BEIRA') || s.includes('TEMA') || s.includes('DOUALA') || s.includes('MOZAMBIQUE')) return 'AFRICA';
+  if (s.includes('ATLANTIC') || s.includes('US') || s.includes('BRAZIL') || s.includes('MEXICO') || s.includes('GULF') || s.includes('MOROCCO') || s.includes('CASABLANCA') || s.includes('GUATEMALA')) return 'ATLANTIC';
+  if (s.includes('AUSTRALIA')) return 'AUSTRALIA';
+  return s;
+}
+
 function cargoMatchesVessel(order,vessel) {
   if (!vessel.dwt) return false;
   const [lo,hi]=tonnageToRange(order.tonnage);
-  return vessel.dwt>=lo*0.85&&vessel.dwt<=hi*1.15;
+  const dwtOk = vessel.dwt>=lo*0.85 && vessel.dwt<=hi*1.15;
+  if (!dwtOk) return false;
+  // Region match — if both have regions, they must be compatible
+  const vRegion = normalizeRegion(vessel.region);
+  const oRegion = normalizeRegion(order.region);
+  if (!vRegion || !oRegion) return true; // if either unknown, don't filter
+  return vRegion === oRegion;
 }
 
 // ── APP LAUNCH ──
