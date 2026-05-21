@@ -565,11 +565,15 @@ function vesselRow(v){
 
 function renderCargo(wrap,orders,type){
   const countId=type==='TCT'?'cnt-tct':'cnt-voy';
-  const filtered=orders.filter(o=>!searchQuery||(o.account||'').toLowerCase().includes(searchQuery)||
-    (o.cargo||'').toLowerCase().includes(searchQuery)||
-    (o.delivery||o.loadPort||'').toLowerCase().includes(searchQuery)||
-    (o.redelivery||o.dischargePort||'').toLowerCase().includes(searchQuery)||
-    (o.laycan||'').toLowerCase().includes(searchQuery));
+  const filtered=orders.filter(o=>{
+    if(activeRegion!=='all'&&normalizeRegion(o.region)!==normalizeRegion(activeRegion))return false;
+    if(!searchQuery)return true;
+    return(o.account||'').toLowerCase().includes(searchQuery)||
+      (o.cargo||'').toLowerCase().includes(searchQuery)||
+      (o.delivery||o.loadPort||'').toLowerCase().includes(searchQuery)||
+      (o.redelivery||o.dischargePort||'').toLowerCase().includes(searchQuery)||
+      (o.laycan||'').toLowerCase().includes(searchQuery);
+  });
   document.getElementById(countId).textContent=filtered.length;
   if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div>No ${type} orders match</div>`;return;}
   for (const o of filtered){
