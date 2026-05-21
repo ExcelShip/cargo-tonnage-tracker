@@ -226,22 +226,20 @@
 <script>
 // ── CONFIG ── only line you ever need to change
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
-
+const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
 
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
 let activeTab='tonnage', activeRegion='all', searchQuery='';
 
 // ── GOOGLE SHEETS CSV FETCH ──
-const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
-
 function sheetURL(gid) {
   return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
 }
 
 async function fetchSheet(gid) {
   const res = await fetch(sheetURL(gid));
-  if (!res.ok) throw new Error(`HTTP ${res.status} — check sheet is public`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const text = await res.text();
   return parseCSV(text);
 }
@@ -292,9 +290,7 @@ async function refreshData() {
     const [tonnageRows, tctRows, voyRows] = await Promise.all([
       fetchSheet(GIDS.tonnage), fetchSheet(GIDS.tct), fetchSheet(GIDS.voy)
     ]);
-    vessels = parseTonnage(tonnageRows);
-    tct = parseTCT(tctRows);
-    voy = parseVOY(voyRows);
+    vessels = parseTonnage(tonnageRows); tct = parseTCT(tctRows); voy = parseVOY(voyRows);
     updateStats();
     buildFilters();
     renderList();
@@ -330,19 +326,18 @@ function parseTonnage(rows) {
       const dwtVal = String(row[1]||'').replace(/,/g,'').replace(/[^0-9]/g,'');
       const dwt = dwtVal ? parseInt(dwtVal,10) : null;
       result.push({
-        vesselName:f,
-        dwt: (dwt && !isNaN(dwt)) ? dwt : null,
-        blt: row[2] ? parseInt(String(row[2]).replace(/[^0-9]/g,'')) : null,
-        bssPort: String(row[3]||'').trim(),
-        region: region || String(row[4]||'').trim(),
-        open: String(row[5]||'').trim(),
-        owner: String(row[6]||'').trim(),
-        comments: String(row[7]||'').trim(),
-        needsUpdate: String(row[9]||'').toLowerCase().includes('update'),
-        onSubs: String(row[9]||'').toLowerCase().includes('subs'),
+        vesselName:f, dwt:(dwt&&!isNaN(dwt))?dwt:null,
+        blt:row[2]?parseInt(String(row[2]).replace(/[^0-9]/g,'')):null,
+        bssPort:String(row[3]||'').trim(),
+        region:region||String(row[4]||'').trim(),
+        open:String(row[5]||'').trim(),
+        owner:String(row[6]||'').trim(),
+        comments:String(row[7]||'').trim(),
+        needsUpdate:String(row[9]||'').toLowerCase().includes('update'),
+        onSubs:String(row[9]||'').toLowerCase().includes('subs'),
       });
-    } else if (!f.startsWith('Daily') && !f.includes('Vessel') && !row.slice(1,5).some(c=>c!=null&&String(c).trim()!=='')) {
-      region = f.replace(/[^a-zA-Z0-9 .\-]/g,' ').replace(/\s+/g,' ').trim();
+    } else if (!f.startsWith('Daily')&&!f.includes('Vessel')&&!f.includes('DWT')&&!row.slice(1,5).some(x=>x!=null&&String(x).trim()!=='')) {
+      region = f;
     }
   }
   return result;
@@ -354,7 +349,7 @@ function parseTCT(rows) {
     const f=String(row[0]||'').trim();
     if (f==='ACCOUNT'){started=true;continue;}
     if (!started||!f||f==='Daily CGO List') continue;
-    if (isRegionHeader(row)){region=f.replace(/[^a-zA-Z0-9 .\-]/g,' ').replace(/\s+/g,' ').trim();continue;}
+    if (isRegionHeader(row)){region=f;continue;}
     if (!row[2]&&!row[3]) continue;
     result.push({account:f,cargo:String(row[1]||'').trim(),tonnage:String(row[2]||'').trim(),
       delivery:String(row[3]||'').trim(),redelivery:String(row[4]||'').trim(),
@@ -369,7 +364,7 @@ function parseVOY(rows) {
     const f=String(row[0]||'').trim();
     if (f==='ACCOUNT'){started=true;continue;}
     if (!started||!f||f==='Daily CGO List') continue;
-    if (isRegionHeader(row)){region=f.replace(/[^a-zA-Z0-9 .\-]/g,' ').replace(/\s+/g,' ').trim();continue;}
+    if (isRegionHeader(row)){region=f;continue;}
     if (!row[1]&&!row[2]) continue;
     result.push({account:f,cargo:String(row[1]||'').trim(),tonnage:String(row[2]||'').trim(),
       loadPort:String(row[3]||'').trim(),dischargePort:String(row[4]||'').trim(),
@@ -393,15 +388,15 @@ function tonnageToRange(t) {
 
 function normalizeRegion(r) {
   if (!r) return '';
-  const s = r.toUpperCase().replace(/[^A-Z0-9]/g,' ').replace(/\s+/g,' ').trim();
-  if (s.includes('WCI') || s.includes('PG')) return 'WCI-PG';
-  if (s.includes('R SEA') || s.includes('RED SEA') || s.includes('RSEA')) return 'RSEA';
-  if (s.includes('ECI') || s.includes('BDESH') || s.includes('BANGLADESH')) return 'ECI';
-  if (s.includes('CHINA') || s.includes('F EAST') || s.includes('JAPAN') || s.includes('KOREA') || s.includes('PACIFIC') || s.includes('N CHINA') || s.includes('S CHINA')) return 'FEASTCHINA';
-  if (s.includes('SE ASIA') || s.includes('VIETNAM') || s.includes('INDO') || s.includes('SINGAPORE') || s.includes('SPORE') || s.includes('MALAYSIA') || s.includes('CAMBODIA') || s.includes('HONG KONG')) return 'SEASIA';
-  if (s.includes('MED') || s.includes('TURKEY') || s.includes('ITALY') || s.includes('SPAIN') || s.includes('ALGERIA') || s.includes('LIBYA') || s.includes('BALTIC') || s.includes('RUSSIA') || s.includes('DENMARK')) return 'MED';
-  if (s.includes('AFRICA') || s.includes('BEIRA') || s.includes('TEMA') || s.includes('DOUALA') || s.includes('MOZAMBIQUE')) return 'AFRICA';
-  if (s.includes('ATLANTIC') || s.includes('US') || s.includes('BRAZIL') || s.includes('MEXICO') || s.includes('GULF') || s.includes('MOROCCO') || s.includes('CASABLANCA') || s.includes('GUATEMALA')) return 'ATLANTIC';
+  const s = r.toUpperCase().replace(/[^A-Z0-9]/g,' ').replace(/  +/g,' ').trim();
+  if (s.includes('WCI')||s.includes(' PG')||s==='PG') return 'WCI-PG';
+  if (s.includes('R SEA')||s.includes('RED SEA')||s.includes('RSEA')||s==='R SEA') return 'RSEA';
+  if (s.includes('ECI')||s.includes('BDESH')) return 'ECI';
+  if (s.includes('F EAST')||s.includes('FEAST')||s.includes('JAPAN')||s.includes('KOREA')||s.includes('CHINA')||s.includes('CJK')||s.includes('PACIFIC')||s.includes('N CHINA')||s.includes('S CHINA')) return 'FAREAST';
+  if (s.includes('SE ASIA')||s.includes('SEASIA')||s.includes('VIETNAM')||s.includes('INDO')||s.includes('SINGAPORE')||s.includes('SPORE')||s.includes('MALAYSIA')||s.includes('CAMBODIA')||s.includes('HONG KONG')) return 'SEASIA';
+  if (s.includes('MED')||s.includes('TURKEY')||s.includes('ITALY')||s.includes('SPAIN')||s.includes('ALGERIA')||s.includes('LIBYA')||s.includes('BALTIC')||s.includes('B SEA')) return 'MED';
+  if (s.includes('AFRICA')||s.includes('S AFRICA')||s.includes('E AFRICA')||s.includes('W AFRICA')||s.includes('W.AFRICA')) return 'AFRICA';
+  if (s.includes('ATLANTIC')||s.includes('US')||s.includes('BRAZIL')||s.includes('MEXICO')||s.includes('WCCA')||s.includes('CARIB')) return 'ATLANTIC';
   if (s.includes('AUSTRALIA')) return 'AUSTRALIA';
   return s;
 }
@@ -409,14 +404,13 @@ function normalizeRegion(r) {
 function cargoMatchesVessel(order,vessel) {
   if (!vessel.dwt) return false;
   const [lo,hi]=tonnageToRange(order.tonnage);
-  const dwtOk = vessel.dwt>=lo*0.85 && vessel.dwt<=hi*1.15;
-  if (!dwtOk) return false;
-  // Region match — if both have regions, they must be compatible
-  const vRegion = normalizeRegion(vessel.region);
-  const oRegion = normalizeRegion(order.region);
-  if (!vRegion || !oRegion) return true; // if either unknown, don't filter
-  return vRegion === oRegion;
+  if (!(vessel.dwt>=lo*0.85&&vessel.dwt<=hi*1.15)) return false;
+  const vR=normalizeRegion(vessel.region||'');
+  const oR=normalizeRegion(order.region||'');
+  if (!vR||!oR) return true;
+  return vR===oR;
 }
+
 
 // ── APP LAUNCH ──
 function launchApp() {
