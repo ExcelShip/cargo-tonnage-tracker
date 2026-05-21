@@ -226,21 +226,22 @@
 <script>
 // ── CONFIG ── only line you ever need to change
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
-const SHEET_NAMES = { tonnage: 'TONNAGE', tct: 'CARGO - TCT', voy: 'CARGO - VOY' };
+
 
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
 let activeTab='tonnage', activeRegion='all', searchQuery='';
 
 // ── GOOGLE SHEETS CSV FETCH ──
-function sheetURL(sheetName) {
-  const encoded = encodeURIComponent(sheetName);
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encoded}`;
+const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
+
+function sheetURL(gid) {
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
 }
 
-async function fetchSheet(sheetName) {
-  const res = await fetch(sheetURL(sheetName));
-  if (!res.ok) throw new Error(`Failed to load sheet: ${sheetName}`);
+async function fetchSheet(gid) {
+  const res = await fetch(sheetURL(gid));
+  if (!res.ok) throw new Error(`HTTP ${res.status} — check sheet is public`);
   const text = await res.text();
   return parseCSV(text);
 }
@@ -270,9 +271,7 @@ async function fetchData() {
   try {
     document.getElementById('loadingStatus').textContent = 'Loading data…';
     const [tonnageRows, tctRows, voyRows] = await Promise.all([
-      fetchSheet(SHEET_NAMES.tonnage),
-      fetchSheet(SHEET_NAMES.tct),
-      fetchSheet(SHEET_NAMES.voy)
+      fetchSheet(GIDS.tonnage), fetchSheet(GIDS.tct), fetchSheet(GIDS.voy)
     ]);
     vessels = parseTonnage(tonnageRows);
     tct = parseTCT(tctRows);
@@ -291,9 +290,7 @@ async function refreshData() {
   btn.classList.add('spinning');
   try {
     const [tonnageRows, tctRows, voyRows] = await Promise.all([
-      fetchSheet(SHEET_NAMES.tonnage),
-      fetchSheet(SHEET_NAMES.tct),
-      fetchSheet(SHEET_NAMES.voy)
+      fetchSheet(GIDS.tonnage), fetchSheet(GIDS.tct), fetchSheet(GIDS.voy)
     ]);
     vessels = parseTonnage(tonnageRows);
     tct = parseTCT(tctRows);
