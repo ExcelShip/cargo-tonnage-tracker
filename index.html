@@ -9,23 +9,9 @@
 <title>Cargo Tracker</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
-  :root {
-    --bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--bg4:#21262f;
-    --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
-    --text:#e8eaf0;--text2:#8a909e;--text3:#545b6a;
-    --accent:#3b82f6;--accent-dim:rgba(59,130,246,0.15);
-    --green:#10b981;--green-dim:rgba(16,185,129,0.15);
-    --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.15);
-    --coral:#ef4444;--coral-dim:rgba(239,68,68,0.12);
-    --purple:#a78bfa;--purple-dim:rgba(167,139,250,0.15);
-    --teal:#2dd4bf;--teal-dim:rgba(45,212,191,0.15);
-    --radius:10px;--radius-sm:6px;
-    --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
-  }
+  :root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--bg4:#21262f;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#e8eaf0;--text2:#8a909e;--text3:#545b6a;--accent:#3b82f6;--accent-dim:rgba(59,130,246,0.15);--green:#10b981;--green-dim:rgba(16,185,129,0.15);--amber:#f59e0b;--amber-dim:rgba(245,158,11,0.15);--coral:#ef4444;--coral-dim:rgba(239,68,68,0.12);--purple:#a78bfa;--purple-dim:rgba(167,139,250,0.15);--teal:#2dd4bf;--teal-dim:rgba(45,212,191,0.15);--radius:10px;--radius-sm:6px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;}
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior:none;}
-
-  /* LOADING */
   #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:2rem;transition:opacity 0.4s;}
   #loading.hidden{opacity:0;pointer-events:none;}
   .loading-logo{width:64px;height:64px;border-radius:16px;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;font-size:28px;}
@@ -33,16 +19,12 @@
   .loading-status{font-size:13px;color:var(--text2);margin-top:16px;font-family:var(--mono);}
   .spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;}
   @keyframes spin{to{transform:rotate(360deg);}}
-
-  /* ERROR */
   #errorScreen{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;}
   #errorScreen.show{display:flex;}
   .error-icon{font-size:40px;margin-bottom:16px;}
   .error-title{font-size:18px;font-weight:600;color:var(--coral);margin-bottom:8px;}
   .error-msg{font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin-bottom:24px;}
   .retry-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 24px;font-size:14px;font-family:var(--font);cursor:pointer;}
-
-  /* APP */
   #app{display:none;flex-direction:column;height:100dvh;height:100vh;}
   #app.show{display:flex;}
   .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;}
@@ -144,23 +126,20 @@
 </head>
 <body>
 
-<!-- LOADING -->
 <div id="loading">
   <div class="loading-logo">⚓</div>
   <div class="loading-title">Cargo Tracker</div>
   <div class="spinner"></div>
-  <div class="loading-status" id="loadingStatus">Connecting to Daily List…</div>
+  <div class="loading-status" id="loadingStatus">Loading Daily List…</div>
 </div>
 
-<!-- ERROR -->
 <div id="errorScreen">
   <div class="error-icon">⚠️</div>
   <div class="error-title">Could not load data</div>
-  <div class="error-msg" id="errorMsg">Make sure the Google Sheet is set to "Anyone with the link can view" and you have an internet connection.</div>
+  <div class="error-msg" id="errorMsg">Check your internet connection and try again.</div>
   <button class="retry-btn" onclick="fetchData()">Try again</button>
 </div>
 
-<!-- MAIN APP -->
 <div id="app">
   <div class="topbar">
     <div class="topbar-inner">
@@ -206,7 +185,6 @@
   <div class="safe-bottom"></div>
 </div>
 
-<!-- DETAIL -->
 <div id="detail">
   <div class="detail-topbar">
     <div class="detail-topbar-inner">
@@ -224,92 +202,44 @@
 <div class="toast" id="toast"></div>
 
 <script>
-// ── CONFIG ── only line you ever need to change
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
-const SHEET_NAMES = { tonnage: 'TONNAGE', tct: 'CARGO - TCT', voy: 'CARGO - VOY' };
-
+const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
+
 let vessels=[], tct=[], voy=[];
 let activeTab='tonnage', activeRegion='all', searchQuery='';
 
-// ── GOOGLE SHEETS CSV FETCH ──
-function sheetURL(sheetName) {
-  const encoded = encodeURIComponent(sheetName);
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encoded}`;
+function sheetURL(gid) {
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
 }
 
-async function fetchSheet(sheetName) {
-  const res = await fetch(sheetURL(sheetName));
-  if (!res.ok) throw new Error(`Failed to load sheet: ${sheetName}`);
+async function fetchSheet(gid) {
+  const res = await fetch(sheetURL(gid));
+  if (!res.ok) throw new Error(`HTTP ${res.status} loading sheet gid=${gid}`);
   const text = await res.text();
   return parseCSV(text);
 }
 
 function parseCSV(text) {
-  const lines = text.split('\n');
-  return lines.map(line => {
-    const cols = [];
-    let cur = '', inQ = false;
+  const rows = [];
+  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  for (const line of lines) {
+    if (!line.trim()) continue;
+    const cols = []; let cur = '', inQ = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
-      if (ch === '"') { inQ = !inQ; }
-      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
-      else { cur += ch; }
+      if (ch === '"') {
+        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+        else inQ = !inQ;
+      } else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+      else cur += ch;
     }
-    cols.push(cur.trim());
-    return cols.map(c => c === '' ? null : c);
-  });
-}
-
-async function fetchData() {
-  document.getElementById('loading').classList.remove('hidden');
-  document.getElementById('errorScreen').classList.remove('show');
-  document.getElementById('app').classList.remove('show');
-  document.getElementById('loadingStatus').textContent = 'Connecting to Daily List…';
-
-  try {
-    document.getElementById('loadingStatus').textContent = 'Loading vessels…';
-    const tonnageRows = await fetchSheet(SHEET_NAMES.tonnage);
-    vessels = parseTonnage(tonnageRows);
-
-    document.getElementById('loadingStatus').textContent = 'Loading cargo orders…';
-    const tctRows = await fetchSheet(SHEET_NAMES.tct);
-    tct = parseTCT(tctRows);
-
-    const voyRows = await fetchSheet(SHEET_NAMES.voy);
-    voy = parseVOY(voyRows);
-
-    launchApp();
-  } catch(err) {
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('errorScreen').classList.add('show');
-    document.getElementById('errorMsg').textContent = err.message + ' — Make sure the Google Sheet is set to "Anyone with the link can view".';
+    cols.push(cur);
+    rows.push(cols.map(c => c.trim() === '' ? null : c.trim()));
   }
+  return rows;
 }
 
-async function refreshData() {
-  const btn = document.getElementById('refreshBtn');
-  btn.classList.add('spinning');
-  try {
-    const tonnageRows = await fetchSheet(SHEET_NAMES.tonnage);
-    vessels = parseTonnage(tonnageRows);
-    const tctRows = await fetchSheet(SHEET_NAMES.tct);
-    tct = parseTCT(tctRows);
-    const voyRows = await fetchSheet(SHEET_NAMES.voy);
-    voy = parseVOY(voyRows);
-    updateStats();
-    buildFilters();
-    renderList();
-    const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('topMeta').textContent = 'Updated ' + now;
-    showToast('Refreshed · ' + vessels.length + ' vessels');
-  } catch(err) {
-    showToast('Refresh failed — check connection');
-  }
-  btn.classList.remove('spinning');
-}
-
-// ── PARSERS ──
 function parseDWT(raw) {
   if (!raw) return null;
   const n = String(raw).replace(/[^\d]/g,'');
@@ -319,17 +249,18 @@ function parseDWT(raw) {
 
 function isRegionHeader(row) {
   const f = String(row[0]||'').trim();
-  if (!f || f.startsWith('MV ') || f.startsWith('Daily') || f==='Vessel Name' || f==='ACCOUNT') return false;
-  return !row.slice(1,6).some(c=>c!=null&&String(c).trim()!=='') && f.length>1 && f.length<40;
+  if (!f || f.startsWith('MV ') || f==='Vessel Name' || f==='ACCOUNT' || f.startsWith('Daily')) return false;
+  const hasCols = row.slice(1,6).some(c => c != null && String(c).trim() !== '');
+  return !hasCols && f.length > 1 && f.length < 40;
 }
 
 function parseTonnage(rows) {
   const result=[]; let region='', started=false;
   for (const row of rows) {
     const f = String(row[0]||'').trim();
-    if (f==='Vessel Name'){started=true;continue;}
+    if (f === 'Vessel Name') { started=true; continue; }
     if (!started) continue;
-    if (isRegionHeader(row)){region=f.replace(/[–—]/g,'-').trim();continue;}
+    if (isRegionHeader(row)) { region=f.replace(/[–—]/g,'-').trim(); continue; }
     if (!f.startsWith('MV ')) continue;
     result.push({
       vesselName:f, dwt:parseDWT(row[1]),
@@ -387,28 +318,59 @@ function tonnageToRange(t) {
   return [0,999999];
 }
 
-function cargoMatchesVessel(order,vessel) {
-  if (!vessel.dwt) return false;
-  const [lo,hi]=tonnageToRange(order.tonnage);
-  return vessel.dwt>=lo*0.85&&vessel.dwt<=hi*1.15;
+function cargoMatchesVessel(o,v) {
+  if (!v.dwt) return false;
+  const [lo,hi]=tonnageToRange(o.tonnage);
+  return v.dwt>=lo*0.85&&v.dwt<=hi*1.15;
 }
 
-// ── APP LAUNCH ──
+async function fetchData() {
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('errorScreen').classList.remove('show');
+  document.getElementById('app').classList.remove('show');
+  try {
+    document.getElementById('loadingStatus').textContent = 'Loading vessels…';
+    vessels = parseTonnage(await fetchSheet(GIDS.tonnage));
+    document.getElementById('loadingStatus').textContent = 'Loading TCT orders…';
+    tct = parseTCT(await fetchSheet(GIDS.tct));
+    document.getElementById('loadingStatus').textContent = 'Loading VOY orders…';
+    voy = parseVOY(await fetchSheet(GIDS.voy));
+    launchApp();
+  } catch(err) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('errorScreen').classList.add('show');
+    document.getElementById('errorMsg').textContent = err.message;
+  }
+}
+
+async function refreshData() {
+  const btn=document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
+  try {
+    vessels=parseTonnage(await fetchSheet(GIDS.tonnage));
+    tct=parseTCT(await fetchSheet(GIDS.tct));
+    voy=parseVOY(await fetchSheet(GIDS.voy));
+    updateStats(); buildFilters(); renderList();
+    const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('topMeta').textContent='Updated '+now;
+    showToast('Refreshed · '+vessels.length+' vessels');
+  } catch(e){ showToast('Refresh failed — check connection'); }
+  btn.classList.remove('spinning');
+}
+
 function launchApp() {
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('app').classList.add('show');
-  const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('topMeta').textContent = 'Updated ' + now;
-  updateStats();
-  buildFilters();
-  renderList();
-  showToast('Loaded · ' + vessels.length + ' vessels · ' + (tct.length+voy.length) + ' cargo orders');
+  const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('topMeta').textContent='Updated '+now;
+  updateStats(); buildFilters(); renderList();
+  showToast('Loaded · '+vessels.length+' vessels · '+(tct.length+voy.length)+' orders');
 }
 
 function updateStats() {
-  document.getElementById('statVessels').textContent = vessels.length;
-  document.getElementById('statTCT').textContent = tct.length;
-  document.getElementById('statVOY').textContent = voy.length;
+  document.getElementById('statVessels').textContent=vessels.length;
+  document.getElementById('statTCT').textContent=tct.length;
+  document.getElementById('statVOY').textContent=voy.length;
 }
 
 function dwtInfo(dwt) {
@@ -420,24 +382,14 @@ function dwtInfo(dwt) {
   return {cls:'cp',label:(dwt/1000).toFixed(0)+'k',size:'CP'};
 }
 
-function showToast(msg) {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2500);
-}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
 
-// ── FILTERS ──
 function buildFilters() {
   const regions=['all',...new Set(vessels.map(v=>v.region).filter(Boolean))];
-  const ordered=['all',...REGIONS_ORDER.filter(r=>regions.includes(r)),
-    ...regions.filter(r=>r!=='all'&&!REGIONS_ORDER.includes(r))];
+  const ordered=['all',...REGIONS_ORDER.filter(r=>regions.includes(r)),...regions.filter(r=>r!=='all'&&!REGIONS_ORDER.includes(r))];
   const unique=[...new Set(ordered)];
-  const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI',
-    'CHINA':'China','VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo',
-    'MED':'Med','AFRICA':'Africa','ATLANTIC':'Atlantic'};
-  document.getElementById('filterRow').innerHTML=unique.map(r=>
-    `<button class="fpill${r===activeRegion?' active':''}" onclick="setRegion('${r}',this)">${labels[r]||r}</button>`
-  ).join('');
+  const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI','CHINA':'China','VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo','MED':'Med','AFRICA':'Africa','ATLANTIC':'Atlantic'};
+  document.getElementById('filterRow').innerHTML=unique.map(r=>`<button class="fpill${r===activeRegion?' active':''}" onclick="setRegion('${r}',this)">${labels[r]||r}</button>`).join('');
 }
 
 function setRegion(r,el){activeRegion=r;document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderList();}
@@ -445,9 +397,8 @@ function setTab(t){activeTab=t;document.querySelectorAll('.tab').forEach(b=>b.cl
 function onSearch(){searchQuery=document.getElementById('searchInput').value.toLowerCase();document.getElementById('clearBtn').classList.toggle('show',searchQuery.length>0);renderList();}
 function clearSearch(){searchQuery='';document.getElementById('searchInput').value='';document.getElementById('clearBtn').classList.remove('show');renderList();}
 
-// ── RENDER ──
 function renderList(){
-  const wrap=document.getElementById('listWrap'); wrap.innerHTML='';
+  const wrap=document.getElementById('listWrap');wrap.innerHTML='';
   if (activeTab==='tonnage') renderTonnage(wrap);
   else if (activeTab==='tct') renderCargo(wrap,tct,'TCT');
   else renderCargo(wrap,voy,'VOY');
@@ -456,10 +407,7 @@ function renderList(){
 function renderTonnage(wrap){
   const filtered=vessels.filter(v=>{
     const rMatch=activeRegion==='all'||v.region===activeRegion;
-    const qMatch=!searchQuery||v.vesselName.toLowerCase().includes(searchQuery)||
-      (v.bssPort||'').toLowerCase().includes(searchQuery)||
-      (v.owner||'').toLowerCase().includes(searchQuery)||
-      (v.region||'').toLowerCase().includes(searchQuery);
+    const qMatch=!searchQuery||v.vesselName.toLowerCase().includes(searchQuery)||(v.bssPort||'').toLowerCase().includes(searchQuery)||(v.owner||'').toLowerCase().includes(searchQuery)||(v.region||'').toLowerCase().includes(searchQuery);
     return rMatch&&qMatch;
   });
   document.getElementById('cnt-tonnage').textContent=filtered.length;
@@ -477,7 +425,7 @@ function renderTonnage(wrap){
 }
 
 function vesselRow(v){
-  const info=dwtInfo(v.dwt); const el=document.createElement('div'); el.className='vessel-row';
+  const info=dwtInfo(v.dwt);const el=document.createElement('div');el.className='vessel-row';
   const statusCls=v.onSubs?'status-subs':v.needsUpdate?'status-update':(v.open&&v.open.toUpperCase()==='SPOT'?'status-spot':'');
   const statusLabel=v.onSubs?'On subs':v.needsUpdate?'Update':(v.open&&v.open.toUpperCase()==='SPOT'?'Spot':'');
   el.innerHTML=`<div class="dwt-badge ${info.cls}"><span>${info.label}</span><span style="font-size:9px;">${info.size}</span></div>
@@ -485,24 +433,19 @@ function vesselRow(v){
     <div class="vessel-meta"><span>${v.owner||'—'}</span>${v.blt?`<span>· ${v.blt}</span>`:''}</div></div>
     <div class="vessel-open"><div class="open-date">${v.open||'—'}</div><div class="open-port">${v.bssPort||''}</div>
     ${statusLabel?`<div class="status-pill ${statusCls}">${statusLabel}</div>`:''}</div>`;
-  el.addEventListener('click',()=>showDetail(v)); return el;
+  el.addEventListener('click',()=>showDetail(v));return el;
 }
 
 function renderCargo(wrap,orders,type){
   const countId=type==='TCT'?'cnt-tct':'cnt-voy';
-  const filtered=orders.filter(o=>!searchQuery||(o.account||'').toLowerCase().includes(searchQuery)||
-    (o.cargo||'').toLowerCase().includes(searchQuery)||
-    (o.delivery||o.loadPort||'').toLowerCase().includes(searchQuery)||
-    (o.redelivery||o.dischargePort||'').toLowerCase().includes(searchQuery)||
-    (o.laycan||'').toLowerCase().includes(searchQuery));
+  const filtered=orders.filter(o=>!searchQuery||(o.account||'').toLowerCase().includes(searchQuery)||(o.cargo||'').toLowerCase().includes(searchQuery)||(o.delivery||o.loadPort||'').toLowerCase().includes(searchQuery)||(o.redelivery||o.dischargePort||'').toLowerCase().includes(searchQuery)||(o.laycan||'').toLowerCase().includes(searchQuery));
   document.getElementById(countId).textContent=filtered.length;
   if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div>No ${type} orders match</div>`;return;}
   for (const o of filtered){
-    const el=document.createElement('div'); el.className='cargo-row';
+    const el=document.createElement('div');el.className='cargo-row';
     const isTCT=type==='TCT';
     const route=isTCT?`${o.delivery||'—'} → ${o.redelivery||'—'}`:`${o.loadPort||'—'} → ${o.dischargePort||'—'}`;
-    el.innerHTML=`<div class="cargo-top"><div class="cargo-account">${o.account}</div>
-      <span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
+    el.innerHTML=`<div class="cargo-top"><div class="cargo-account">${o.account}</div><span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
       <div class="cargo-details">${o.cargo||'—'} · ${o.tonnage||'—'}</div>
       <div class="cargo-route"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${route}</div>
       <div class="cargo-pills"><span class="cpill">${o.laycan||'—'}</span></div>`;
@@ -510,7 +453,6 @@ function renderCargo(wrap,orders,type){
   }
 }
 
-// ── DETAIL ──
 function showDetail(vessel){
   document.getElementById('app').style.display='none';
   document.getElementById('detail').classList.add('show');
@@ -523,8 +465,7 @@ function showDetail(vessel){
     const isTCT=type==='TCT';
     return orders.map(o=>{
       const route=isTCT?`${o.delivery||'—'} → ${o.redelivery||'—'}`:`${o.loadPort||'—'} → ${o.dischargePort||'—'}`;
-      return `<div class="match-card"><div class="match-top"><div class="match-account">${o.account}</div>
-        <span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
+      return `<div class="match-card"><div class="match-top"><div class="match-account">${o.account}</div><span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
         <div class="match-cargo">${o.cargo||'—'} · ${o.tonnage||'—'}</div>
         <div class="match-route"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>${route}</div>
         <div class="match-pills"><span class="cpill">${o.laycan||'—'}</span></div></div>`;
@@ -552,7 +493,6 @@ function showDetail(vessel){
 
 function goBack(){document.getElementById('detail').classList.remove('show');document.getElementById('app').style.display='flex';}
 
-// ── START ──
 fetchData();
 </script>
 </body>
