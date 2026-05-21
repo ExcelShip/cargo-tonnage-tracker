@@ -258,13 +258,21 @@ function parseTonnage(rows) {
   const result=[]; let region='', started=false;
   for (const row of rows) {
     const f = String(row[0]||'').trim();
-    if (f === 'Vessel Name') { started=true; continue; }
+    // find header row - look for "Vessel Name" anywhere
+    if (f === 'Vessel Name' || f === 'VESSEL NAME') { started=true; continue; }
     if (!started) continue;
-    if (isRegionHeader(row)) { region=f.replace(/[–—]/g,'-').trim(); continue; }
+    // skip empty rows
+    if (!f) continue;
+    // region header detection
+    if (isRegionHeader(row)) { region=f.replace(/[\u2013\u2014]/g,'-').trim(); continue; }
+    // vessel rows must start with MV
     if (!f.startsWith('MV ')) continue;
+    // DWT: handle both "26,700DWT" and plain "26700" and "26,700"
+    const dwtRaw = row[1] ? String(row[1]).replace(/,/g,'') : null;
+    const dwt = dwtRaw ? parseDWT(dwtRaw) : null;
     result.push({
-      vesselName:f, dwt:parseDWT(row[1]),
-      blt:row[2]?parseInt(row[2]):null,
+      vesselName:f, dwt,
+      blt:row[2]?parseInt(String(row[2]).replace(/,/g,'')):null,
       bssPort:String(row[3]||'').trim(),
       region:region||String(row[4]||'').trim(),
       open:String(row[5]||'').trim(),
