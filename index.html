@@ -584,7 +584,7 @@ function renderCargo(wrap,orders,type){
       <span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
       <div class="cargo-details">${o.cargo||'—'} · ${o.tonnage||'—'}</div>
       <div class="cargo-route"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${route}</div>
-      <div class="cargo-pills"><span class="cpill">${o.laycan||'—'}</span></div>`;
+      <div class="cargo-pills"><span class="cpill">${o.laycan||'—'}</span><span class="cpill" style="opacity:0.5">${o.region||'NO REGION'}</span></div>`;
     wrap.appendChild(el);
   }
 }
