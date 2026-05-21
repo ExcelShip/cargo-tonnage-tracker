@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cargo Tracker">
 <title>Cargo Tracker</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
   :root {
@@ -26,36 +25,22 @@
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior:none;}
 
-  /* SPLASH */
-  #splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:2rem;transition:opacity 0.4s;}
-  #splash.hidden{opacity:0;pointer-events:none;}
-  .splash-logo{width:64px;height:64px;border-radius:16px;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;font-size:28px;}
-  .splash-title{font-size:22px;font-weight:600;margin-bottom:6px;}
-  .splash-sub{font-size:14px;color:var(--text2);margin-bottom:2rem;text-align:center;line-height:1.5;}
-  .drop-zone{width:100%;max-width:360px;border:1.5px dashed var(--border2);border-radius:var(--radius);padding:2rem 1rem;text-align:center;cursor:pointer;transition:all 0.2s;background:var(--bg2);}
-  .drop-zone.drag{border-color:var(--accent);background:var(--accent-dim);}
-  .drop-zone-label{font-size:14px;color:var(--text2);}
-  .drop-zone-label span{color:var(--accent);font-weight:500;}
-  .drop-zone-hint{font-size:12px;color:var(--text3);margin-top:6px;}
-  #fileInput{display:none;}
-  .parsing-state{text-align:center;padding:1.5rem;}
-  .spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 12px;}
+  /* LOADING */
+  #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:2rem;transition:opacity 0.4s;}
+  #loading.hidden{opacity:0;pointer-events:none;}
+  .loading-logo{width:64px;height:64px;border-radius:16px;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;font-size:28px;}
+  .loading-title{font-size:22px;font-weight:600;margin-bottom:6px;}
+  .loading-status{font-size:13px;color:var(--text2);margin-top:16px;font-family:var(--mono);}
+  .spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;}
   @keyframes spin{to{transform:rotate(360deg);}}
 
-  /* CACHED DATA BANNER on splash */
-  .cached-banner{width:100%;max-width:360px;margin-bottom:16px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:12px 14px;display:none;}
-  .cached-banner.show{display:block;}
-  .cached-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-  .cached-label{font-size:12px;color:var(--green);font-weight:500;}
-  .cached-meta{font-size:11px;color:var(--text3);font-family:var(--mono);}
-  .cached-stats{display:flex;gap:12px;}
-  .cached-stat{font-size:12px;color:var(--text2);}
-  .cached-stat b{color:var(--text);font-weight:600;}
-  .open-cached-btn{width:100%;max-width:360px;margin-bottom:10px;padding:12px;font-size:14px;font-weight:500;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-family:var(--font);transition:opacity 0.15s;display:none;}
-  .open-cached-btn.show{display:block;}
-  .open-cached-btn:hover{opacity:0.9;}
-  .or-divider{font-size:12px;color:var(--text3);margin-bottom:10px;display:none;}
-  .or-divider.show{display:block;}
+  /* ERROR */
+  #errorScreen{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;}
+  #errorScreen.show{display:flex;}
+  .error-icon{font-size:40px;margin-bottom:16px;}
+  .error-title{font-size:18px;font-weight:600;color:var(--coral);margin-bottom:8px;}
+  .error-msg{font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin-bottom:24px;}
+  .retry-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 24px;font-size:14px;font-family:var(--font);cursor:pointer;}
 
   /* APP */
   #app{display:none;flex-direction:column;height:100dvh;height:100vh;}
@@ -65,8 +50,9 @@
   .topbar-logo{width:30px;height:30px;border-radius:8px;background:var(--accent-dim);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
   .topbar-title{font-size:16px;font-weight:600;flex:1;}
   .topbar-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px;}
-  .import-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.15s;flex-shrink:0;}
-  .import-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .refresh-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.15s;flex-shrink:0;}
+  .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .refresh-btn.spinning svg{animation:spin 0.8s linear infinite;}
   .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
   .stat-cell{background:var(--bg2);padding:10px 12px;text-align:center;}
   .stat-n{font-size:20px;font-weight:600;font-family:var(--mono);}
@@ -158,37 +144,20 @@
 </head>
 <body>
 
-<!-- SPLASH -->
-<div id="splash">
-  <div class="splash-logo">⚓</div>
-  <div class="splash-title">Cargo Tracker</div>
-  <div class="splash-sub">Your internal tonnage & cargo monitor.</div>
+<!-- LOADING -->
+<div id="loading">
+  <div class="loading-logo">⚓</div>
+  <div class="loading-title">Cargo Tracker</div>
+  <div class="spinner"></div>
+  <div class="loading-status" id="loadingStatus">Connecting to Daily List…</div>
+</div>
 
-  <!-- shown when saved data exists -->
-  <div class="cached-banner" id="cachedBanner">
-    <div class="cached-top">
-      <span class="cached-label">✓ Saved data found</span>
-      <span class="cached-meta" id="cachedDate"></span>
-    </div>
-    <div class="cached-stats" id="cachedStats"></div>
-  </div>
-  <button class="open-cached-btn" id="openCachedBtn" onclick="loadFromCache()">Open last import</button>
-  <div class="or-divider" id="orDivider">— or import a new file —</div>
-
-  <div class="drop-zone" id="dropZone">
-    <div id="dropContent">
-      <div style="font-size:32px;margin-bottom:10px;">📂</div>
-      <div class="drop-zone-label">Drop <span>Daily_List.xlsx</span> here</div>
-      <div class="drop-zone-label" style="margin-top:6px;">or <span onclick="document.getElementById('fileInput').click()" style="cursor:pointer;">browse file</span></div>
-      <div class="drop-zone-hint">Reads TONNAGE · CARGO-TCT · CARGO-VOY sheets</div>
-    </div>
-    <div id="parsingContent" class="parsing-state" style="display:none;">
-      <div class="spinner"></div>
-      <div style="font-size:13px;color:var(--text2);" id="parsingLabel">Parsing file…</div>
-    </div>
-  </div>
-  <input type="file" id="fileInput" accept=".xlsx">
-  <div id="importError" style="display:none;margin-top:14px;background:var(--coral-dim);border:1px solid var(--coral);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--coral);max-width:360px;width:100%;text-align:center;"></div>
+<!-- ERROR -->
+<div id="errorScreen">
+  <div class="error-icon">⚠️</div>
+  <div class="error-title">Could not load data</div>
+  <div class="error-msg" id="errorMsg">Make sure the Google Sheet is set to "Anyone with the link can view" and you have an internet connection.</div>
+  <button class="retry-btn" onclick="fetchData()">Try again</button>
 </div>
 
 <!-- MAIN APP -->
@@ -200,9 +169,9 @@
         <div class="topbar-title">Cargo Tracker</div>
         <div class="topbar-sub" id="topMeta"></div>
       </div>
-      <button class="import-btn" onclick="goToSplash()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        Update
+      <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+        Refresh
       </button>
     </div>
   </div>
@@ -255,103 +224,129 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const STORAGE_KEY = 'cargoTracker_v1';
-const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
+// ── CONFIG ── only line you ever need to change
+const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
+const SHEET_NAMES = { tonnage: 'TONNAGE', tct: 'CARGO - TCT', voy: 'CARGO - VOY' };
 
-let vessels=[], tct=[], voy=[], importedAt='';
+const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
+let vessels=[], tct=[], voy=[];
 let activeTab='tonnage', activeRegion='all', searchQuery='';
 
-// ── STORAGE ──
-function saveToStorage() {
+// ── GOOGLE SHEETS CSV FETCH ──
+function sheetURL(sheetName) {
+  const encoded = encodeURIComponent(sheetName);
+  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encoded}`;
+}
+
+async function fetchSheet(sheetName) {
+  const res = await fetch(sheetURL(sheetName));
+  if (!res.ok) throw new Error(`Failed to load sheet: ${sheetName}`);
+  const text = await res.text();
+  return parseCSV(text);
+}
+
+function parseCSV(text) {
+  const lines = text.split('\n');
+  return lines.map(line => {
+    const cols = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQ = !inQ; }
+      else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    cols.push(cur.trim());
+    return cols.map(c => c === '' ? null : c);
+  });
+}
+
+async function fetchData() {
+  document.getElementById('loading').classList.remove('hidden');
+  document.getElementById('errorScreen').classList.remove('show');
+  document.getElementById('app').classList.remove('show');
+  document.getElementById('loadingStatus').textContent = 'Connecting to Daily List…';
+
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ vessels, tct, voy, importedAt }));
-  } catch(e) {
-    // storage full — skip silently
+    document.getElementById('loadingStatus').textContent = 'Loading vessels…';
+    const tonnageRows = await fetchSheet(SHEET_NAMES.tonnage);
+    vessels = parseTonnage(tonnageRows);
+
+    document.getElementById('loadingStatus').textContent = 'Loading cargo orders…';
+    const tctRows = await fetchSheet(SHEET_NAMES.tct);
+    tct = parseTCT(tctRows);
+
+    const voyRows = await fetchSheet(SHEET_NAMES.voy);
+    voy = parseVOY(voyRows);
+
+    launchApp();
+  } catch(err) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('errorScreen').classList.add('show');
+    document.getElementById('errorMsg').textContent = err.message + ' — Make sure the Google Sheet is set to "Anyone with the link can view".';
   }
 }
 
-function loadFromStorage() {
+async function refreshData() {
+  const btn = document.getElementById('refreshBtn');
+  btn.classList.add('spinning');
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
-  } catch(e) { return null; }
-}
-
-function loadFromCache() {
-  const d = loadFromStorage();
-  if (!d) return;
-  vessels = d.vessels || [];
-  tct = d.tct || [];
-  voy = d.voy || [];
-  importedAt = d.importedAt || '';
-  launchApp(false);
-}
-
-// ── ON LOAD: check cache ──
-window.addEventListener('DOMContentLoaded', () => {
-  const cached = loadFromStorage();
-  if (cached && cached.vessels && cached.vessels.length > 0) {
-    document.getElementById('cachedBanner').classList.add('show');
-    document.getElementById('openCachedBtn').classList.add('show');
-    document.getElementById('orDivider').classList.add('show');
-    const d = new Date(cached.importedAt);
-    document.getElementById('cachedDate').textContent = isNaN(d) ? '' : d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-    document.getElementById('cachedStats').innerHTML =
-      `<span class="cached-stat"><b>${cached.vessels.length}</b> vessels</span>
-       <span class="cached-stat"><b>${(cached.tct||[]).length}</b> TCT</span>
-       <span class="cached-stat"><b>${(cached.voy||[]).length}</b> VOY</span>`;
+    const tonnageRows = await fetchSheet(SHEET_NAMES.tonnage);
+    vessels = parseTonnage(tonnageRows);
+    const tctRows = await fetchSheet(SHEET_NAMES.tct);
+    tct = parseTCT(tctRows);
+    const voyRows = await fetchSheet(SHEET_NAMES.voy);
+    voy = parseVOY(voyRows);
+    updateStats();
+    buildFilters();
+    renderList();
+    const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    document.getElementById('topMeta').textContent = 'Updated ' + now;
+    showToast('Refreshed · ' + vessels.length + ' vessels');
+  } catch(err) {
+    showToast('Refresh failed — check connection');
   }
-});
+  btn.classList.remove('spinning');
+}
 
-// ── HELPERS ──
+// ── PARSERS ──
 function parseDWT(raw) {
   if (!raw) return null;
   const n = String(raw).replace(/[^\d]/g,'');
   const v = parseInt(n,10);
-  return isNaN(v)?null:v;
-}
-function dwtInfo(dwt) {
-  if (!dwt) return {cls:'uk',label:'?',size:'—'};
-  if (dwt<30000) return {cls:'hs',label:(dwt/1000).toFixed(0)+'k',size:'HS'};
-  if (dwt<45000) return {cls:'hm',label:(dwt/1000).toFixed(0)+'k',size:'HM'};
-  if (dwt<65000) return {cls:'sm',label:(dwt/1000).toFixed(0)+'k',size:'SM'};
-  if (dwt<82000) return {cls:'pm',label:(dwt/1000).toFixed(0)+'k',size:'PM'};
-  return {cls:'cp',label:(dwt/1000).toFixed(0)+'k',size:'CP'};
-}
-function isRegionHeader(row) {
-  const f=String(row[0]||'').trim();
-  if (!f||f.startsWith('MV ')||f.startsWith('Daily')||f==='Vessel Name'||f==='ACCOUNT') return false;
-  return !row.slice(1,6).some(c=>c!=null&&String(c).trim()!=='') && f.length>1 && f.length<40;
-}
-function today() { return new Date().toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}); }
-function showToast(msg) {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2500);
+  return isNaN(v) ? null : v;
 }
 
-// ── PARSERS ──
-function parseTonnageSheet(ws) {
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
-  const result=[]; let region='',started=false;
+function isRegionHeader(row) {
+  const f = String(row[0]||'').trim();
+  if (!f || f.startsWith('MV ') || f.startsWith('Daily') || f==='Vessel Name' || f==='ACCOUNT') return false;
+  return !row.slice(1,6).some(c=>c!=null&&String(c).trim()!=='') && f.length>1 && f.length<40;
+}
+
+function parseTonnage(rows) {
+  const result=[]; let region='', started=false;
   for (const row of rows) {
-    const f=String(row[0]||'').trim();
+    const f = String(row[0]||'').trim();
     if (f==='Vessel Name'){started=true;continue;}
     if (!started) continue;
     if (isRegionHeader(row)){region=f.replace(/[–—]/g,'-').trim();continue;}
     if (!f.startsWith('MV ')) continue;
-    result.push({vesselName:f,dwt:parseDWT(row[1]),blt:row[2]?parseInt(row[2]):null,
-      bssPort:String(row[3]||'').trim(),region:region||String(row[4]||'').trim(),
-      open:String(row[5]||'').trim(),owner:String(row[6]||'').trim(),
+    result.push({
+      vesselName:f, dwt:parseDWT(row[1]),
+      blt:row[2]?parseInt(row[2]):null,
+      bssPort:String(row[3]||'').trim(),
+      region:region||String(row[4]||'').trim(),
+      open:String(row[5]||'').trim(),
+      owner:String(row[6]||'').trim(),
       comments:String(row[7]||'').trim(),
       needsUpdate:String(row[9]||'').toLowerCase().includes('update'),
-      onSubs:String(row[9]||'').toLowerCase().includes('subs')});
+      onSubs:String(row[9]||'').toLowerCase().includes('subs'),
+    });
   }
   return result;
 }
-function parseTCTSheet(ws) {
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+
+function parseTCT(rows) {
   const result=[]; let started=false;
   for (const row of rows) {
     const f=String(row[0]||'').trim();
@@ -364,8 +359,8 @@ function parseTCTSheet(ws) {
   }
   return result;
 }
-function parseVOYSheet(ws) {
-  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:null});
+
+function parseVOY(rows) {
   const result=[]; let started=false;
   for (const row of rows) {
     const f=String(row[0]||'').trim();
@@ -378,6 +373,7 @@ function parseVOYSheet(ws) {
   }
   return result;
 }
+
 function tonnageToRange(t) {
   if (!t) return [0,999999];
   const s=t.toUpperCase();
@@ -390,65 +386,44 @@ function tonnageToRange(t) {
   if (nums&&nums.length===1){const v=parseInt(nums[0]);return [v*0.9,v*1.1];}
   return [0,999999];
 }
+
 function cargoMatchesVessel(order,vessel) {
   if (!vessel.dwt) return false;
   const [lo,hi]=tonnageToRange(order.tonnage);
   return vessel.dwt>=lo*0.85&&vessel.dwt<=hi*1.15;
 }
 
-// ── FILE PROCESSING ──
-function processFile(file) {
-  if (!file||!file.name.endsWith('.xlsx')){showError('Please upload a valid .xlsx file.');return;}
-  document.getElementById('dropContent').style.display='none';
-  document.getElementById('parsingContent').style.display='block';
-  document.getElementById('importError').style.display='none';
-  const reader=new FileReader();
-  reader.onload=e=>{
-    try {
-      const wb=XLSX.read(e.target.result,{type:'array'});
-      const tonnageWS=wb.Sheets['TONNAGE'];
-      if (!tonnageWS) throw new Error("Sheet 'TONNAGE' not found.");
-      vessels=parseTonnageSheet(tonnageWS);
-      tct=wb.Sheets['CARGO - TCT']?parseTCTSheet(wb.Sheets['CARGO - TCT']):[];
-      voy=wb.Sheets['CARGO - VOY']?parseVOYSheet(wb.Sheets['CARGO - VOY']):[];
-      importedAt=new Date().toISOString();
-      saveToStorage();
-      launchApp(true);
-    } catch(err) {
-      document.getElementById('dropContent').style.display='block';
-      document.getElementById('parsingContent').style.display='none';
-      showError(err.message);
-    }
-  };
-  reader.readAsArrayBuffer(file);
-}
-
-function showError(msg){
-  const el=document.getElementById('importError');
-  el.textContent='⚠ '+msg; el.style.display='block';
-}
-
-function launchApp(isNew) {
-  document.getElementById('splash').classList.add('hidden');
+// ── APP LAUNCH ──
+function launchApp() {
+  document.getElementById('loading').classList.add('hidden');
   document.getElementById('app').classList.add('show');
-  const d=new Date(importedAt);
-  const dateStr=isNaN(d)?today():d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});
-  document.getElementById('topMeta').textContent='Updated '+dateStr;
-  document.getElementById('statVessels').textContent=vessels.length;
-  document.getElementById('statTCT').textContent=tct.length;
-  document.getElementById('statVOY').textContent=voy.length;
-  buildFilters(); renderList();
-  if (isNew) showToast('Saved · '+vessels.length+' vessels · '+(tct.length+voy.length)+' cargo orders');
-  else showToast('Loaded · '+vessels.length+' vessels');
+  const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('topMeta').textContent = 'Updated ' + now;
+  updateStats();
+  buildFilters();
+  renderList();
+  showToast('Loaded · ' + vessels.length + ' vessels · ' + (tct.length+voy.length) + ' cargo orders');
 }
 
-function goToSplash() {
-  document.getElementById('app').classList.remove('show');
-  document.getElementById('splash').classList.remove('hidden');
-  document.getElementById('dropContent').style.display='block';
-  document.getElementById('parsingContent').style.display='none';
-  document.getElementById('importError').style.display='none';
-  document.getElementById('fileInput').value='';
+function updateStats() {
+  document.getElementById('statVessels').textContent = vessels.length;
+  document.getElementById('statTCT').textContent = tct.length;
+  document.getElementById('statVOY').textContent = voy.length;
+}
+
+function dwtInfo(dwt) {
+  if (!dwt) return {cls:'uk',label:'?',size:'—'};
+  if (dwt<30000) return {cls:'hs',label:(dwt/1000).toFixed(0)+'k',size:'HS'};
+  if (dwt<45000) return {cls:'hm',label:(dwt/1000).toFixed(0)+'k',size:'HM'};
+  if (dwt<65000) return {cls:'sm',label:(dwt/1000).toFixed(0)+'k',size:'SM'};
+  if (dwt<82000) return {cls:'pm',label:(dwt/1000).toFixed(0)+'k',size:'PM'};
+  return {cls:'cp',label:(dwt/1000).toFixed(0)+'k',size:'CP'};
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
 }
 
 // ── FILTERS ──
@@ -457,44 +432,28 @@ function buildFilters() {
   const ordered=['all',...REGIONS_ORDER.filter(r=>regions.includes(r)),
     ...regions.filter(r=>r!=='all'&&!REGIONS_ORDER.includes(r))];
   const unique=[...new Set(ordered)];
-  const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI','CHINA':'China',
-    'VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo','MED':'Med','AFRICA':'Africa','ATLANTIC':'Atlantic'};
+  const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI',
+    'CHINA':'China','VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo',
+    'MED':'Med','AFRICA':'Africa','ATLANTIC':'Atlantic'};
   document.getElementById('filterRow').innerHTML=unique.map(r=>
     `<button class="fpill${r===activeRegion?' active':''}" onclick="setRegion('${r}',this)">${labels[r]||r}</button>`
   ).join('');
 }
 
-function setRegion(r,el) {
-  activeRegion=r;
-  document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active'); renderList();
-}
-function setTab(t) {
-  activeTab=t;
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+t).classList.add('active');
-  document.getElementById('dwtLegend').style.display=t==='tonnage'?'flex':'none';
-  renderList();
-}
-function onSearch() {
-  searchQuery=document.getElementById('searchInput').value.toLowerCase();
-  document.getElementById('clearBtn').classList.toggle('show',searchQuery.length>0);
-  renderList();
-}
-function clearSearch() {
-  searchQuery=''; document.getElementById('searchInput').value='';
-  document.getElementById('clearBtn').classList.remove('show'); renderList();
-}
+function setRegion(r,el){activeRegion=r;document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderList();}
+function setTab(t){activeTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.getElementById('dwtLegend').style.display=t==='tonnage'?'flex':'none';renderList();}
+function onSearch(){searchQuery=document.getElementById('searchInput').value.toLowerCase();document.getElementById('clearBtn').classList.toggle('show',searchQuery.length>0);renderList();}
+function clearSearch(){searchQuery='';document.getElementById('searchInput').value='';document.getElementById('clearBtn').classList.remove('show');renderList();}
 
 // ── RENDER ──
-function renderList() {
+function renderList(){
   const wrap=document.getElementById('listWrap'); wrap.innerHTML='';
   if (activeTab==='tonnage') renderTonnage(wrap);
   else if (activeTab==='tct') renderCargo(wrap,tct,'TCT');
   else renderCargo(wrap,voy,'VOY');
 }
 
-function renderTonnage(wrap) {
+function renderTonnage(wrap){
   const filtered=vessels.filter(v=>{
     const rMatch=activeRegion==='all'||v.region===activeRegion;
     const qMatch=!searchQuery||v.vesselName.toLowerCase().includes(searchQuery)||
@@ -505,19 +464,19 @@ function renderTonnage(wrap) {
   });
   document.getElementById('cnt-tonnage').textContent=filtered.length;
   if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>No vessels match</div>`;return;}
-  if (activeRegion==='all'&&!searchQuery) {
+  if (activeRegion==='all'&&!searchQuery){
     const groups={};
     for (const v of filtered){const r=v.region||'Other';if(!groups[r])groups[r]=[];groups[r].push(v);}
     const order=[...REGIONS_ORDER,...Object.keys(groups).filter(r=>!REGIONS_ORDER.includes(r))];
     for (const r of order){
       if (!groups[r]) continue;
-      const div=document.createElement('div'); div.className='region-divider'; div.textContent=r; wrap.appendChild(div);
+      const div=document.createElement('div');div.className='region-divider';div.textContent=r;wrap.appendChild(div);
       for (const v of groups[r]) wrap.appendChild(vesselRow(v));
     }
   } else { for (const v of filtered) wrap.appendChild(vesselRow(v)); }
 }
 
-function vesselRow(v) {
+function vesselRow(v){
   const info=dwtInfo(v.dwt); const el=document.createElement('div'); el.className='vessel-row';
   const statusCls=v.onSubs?'status-subs':v.needsUpdate?'status-update':(v.open&&v.open.toUpperCase()==='SPOT'?'status-spot':'');
   const statusLabel=v.onSubs?'On subs':v.needsUpdate?'Update':(v.open&&v.open.toUpperCase()==='SPOT'?'Spot':'');
@@ -529,7 +488,7 @@ function vesselRow(v) {
   el.addEventListener('click',()=>showDetail(v)); return el;
 }
 
-function renderCargo(wrap,orders,type) {
+function renderCargo(wrap,orders,type){
   const countId=type==='TCT'?'cnt-tct':'cnt-voy';
   const filtered=orders.filter(o=>!searchQuery||(o.account||'').toLowerCase().includes(searchQuery)||
     (o.cargo||'').toLowerCase().includes(searchQuery)||
@@ -538,7 +497,7 @@ function renderCargo(wrap,orders,type) {
     (o.laycan||'').toLowerCase().includes(searchQuery));
   document.getElementById(countId).textContent=filtered.length;
   if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div>No ${type} orders match</div>`;return;}
-  for (const o of filtered) {
+  for (const o of filtered){
     const el=document.createElement('div'); el.className='cargo-row';
     const isTCT=type==='TCT';
     const route=isTCT?`${o.delivery||'—'} → ${o.redelivery||'—'}`:`${o.loadPort||'—'} → ${o.dischargePort||'—'}`;
@@ -552,7 +511,7 @@ function renderCargo(wrap,orders,type) {
 }
 
 // ── DETAIL ──
-function showDetail(vessel) {
+function showDetail(vessel){
   document.getElementById('app').style.display='none';
   document.getElementById('detail').classList.add('show');
   document.getElementById('detailBreadcrumb').textContent=vessel.region||'';
@@ -591,18 +550,10 @@ function showDetail(vessel) {
     ${total===0?`<div class="no-match">No cargo orders match this vessel's DWT</div>`:matchHTML(matchedTCT,'TCT')+matchHTML(matchedVOY,'VOY')}`;
 }
 
-function goBack() {
-  document.getElementById('detail').classList.remove('show');
-  document.getElementById('app').style.display='flex';
-}
+function goBack(){document.getElementById('detail').classList.remove('show');document.getElementById('app').style.display='flex';}
 
-// ── DRAG & DROP ──
-const dropZone=document.getElementById('dropZone');
-dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag');});
-dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag'));
-dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);});
-dropZone.addEventListener('click',()=>document.getElementById('fileInput').click());
-document.getElementById('fileInput').addEventListener('change',e=>{if(e.target.files[0])processFile(e.target.files[0]);});
+// ── START ──
+fetchData();
 </script>
 </body>
 </html>
