@@ -3,505 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Cargo Tracker">
-<title>Cargo Tracker</title>
+<title>Cargo Tracker Debug</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
-  :root{--bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--bg4:#21262f;--border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);--text:#e8eaf0;--text2:#8a909e;--text3:#545b6a;--accent:#3b82f6;--accent-dim:rgba(59,130,246,0.15);--green:#10b981;--green-dim:rgba(16,185,129,0.15);--amber:#f59e0b;--amber-dim:rgba(245,158,11,0.15);--coral:#ef4444;--coral-dim:rgba(239,68,68,0.12);--purple:#a78bfa;--purple-dim:rgba(167,139,250,0.15);--teal:#2dd4bf;--teal-dim:rgba(45,212,191,0.15);--radius:10px;--radius-sm:6px;--font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;}
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overscroll-behavior:none;}
-  #loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:1000;padding:2rem;transition:opacity 0.4s;}
-  #loading.hidden{opacity:0;pointer-events:none;}
-  .loading-logo{width:64px;height:64px;border-radius:16px;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:1.5rem;font-size:28px;}
-  .loading-title{font-size:22px;font-weight:600;margin-bottom:6px;}
-  .loading-status{font-size:13px;color:var(--text2);margin-top:16px;font-family:var(--mono);}
-  .spinner{width:28px;height:28px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto;}
-  @keyframes spin{to{transform:rotate(360deg);}}
-  #errorScreen{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;padding:2rem;text-align:center;}
-  #errorScreen.show{display:flex;}
-  .error-icon{font-size:40px;margin-bottom:16px;}
-  .error-title{font-size:18px;font-weight:600;color:var(--coral);margin-bottom:8px;}
-  .error-msg{font-size:13px;color:var(--text2);line-height:1.6;max-width:320px;margin-bottom:24px;}
-  .retry-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:10px 24px;font-size:14px;font-family:var(--font);cursor:pointer;}
-  #app{display:none;flex-direction:column;height:100dvh;height:100vh;}
-  #app.show{display:flex;}
-  .topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;}
-  .topbar-inner{display:flex;align-items:center;gap:10px;padding:12px 16px;}
-  .topbar-logo{width:30px;height:30px;border-radius:8px;background:var(--accent-dim);border:1px solid rgba(59,130,246,0.3);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
-  .topbar-title{font-size:16px;font-weight:600;flex:1;}
-  .topbar-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:1px;}
-  .refresh-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);border-radius:var(--radius-sm);padding:6px 10px;font-size:12px;font-family:var(--font);cursor:pointer;display:flex;align-items:center;gap:5px;transition:all 0.15s;flex-shrink:0;}
-  .refresh-btn:hover{border-color:var(--accent);color:var(--accent);}
-  .refresh-btn.spinning svg{animation:spin 0.8s linear infinite;}
-  .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border);}
-  .stat-cell{background:var(--bg2);padding:10px 12px;text-align:center;}
-  .stat-n{font-size:20px;font-weight:600;font-family:var(--mono);}
-  .stat-l{font-size:10px;color:var(--text3);margin-top:1px;text-transform:uppercase;letter-spacing:0.05em;}
-  .search-wrap{padding:10px 12px 0;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .search-box{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 12px;margin-bottom:10px;}
-  .search-box svg{width:15px;height:15px;flex-shrink:0;color:var(--text3);}
-  .search-box input{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-family:var(--font);padding:9px 0;}
-  .search-box input::placeholder{color:var(--text3);}
-  .clear-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;display:none;align-items:center;}
-  .clear-btn.show{display:flex;}
-  .filter-scroll{display:flex;gap:6px;overflow-x:auto;padding-bottom:10px;scrollbar-width:none;}
-  .filter-scroll::-webkit-scrollbar{display:none;}
-  .fpill{font-size:11px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all 0.15s;font-family:var(--font);}
-  .fpill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
-  .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
-  .tab{flex:1;text-align:center;padding:10px 4px;font-size:12px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.15s;background:none;border-top:none;border-left:none;border-right:none;font-family:var(--font);}
-  .tab.active{color:var(--accent);border-bottom-color:var(--accent);}
-  .tab-count{display:inline-block;font-size:10px;padding:1px 5px;border-radius:10px;background:var(--bg4);margin-left:4px;font-family:var(--mono);}
-  .tab.active .tab-count{background:var(--accent-dim);color:var(--accent);}
-  .list-wrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;}
-  .list-wrap::-webkit-scrollbar{width:3px;}
-  .list-wrap::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
-  .empty-state{padding:3rem 1rem;text-align:center;color:var(--text3);font-size:14px;}
-  .empty-icon{font-size:32px;margin-bottom:10px;}
-  .vessel-row{display:flex;align-items:center;gap:12px;padding:11px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;background:var(--bg);}
-  .vessel-row:active{background:var(--bg3);}
-  .dwt-badge{width:44px;height:44px;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;font-weight:500;flex-shrink:0;line-height:1.2;}
-  .dwt-badge.hs{background:var(--green-dim);color:var(--green);}
-  .dwt-badge.hm{background:var(--accent-dim);color:var(--accent);}
-  .dwt-badge.sm{background:var(--purple-dim);color:var(--purple);}
-  .dwt-badge.pm{background:var(--amber-dim);color:var(--amber);}
-  .dwt-badge.cp{background:var(--coral-dim);color:var(--coral);}
-  .dwt-badge.uk{background:var(--bg4);color:var(--text3);}
-  .vessel-info{flex:1;min-width:0;}
-  .vessel-name{font-size:13px;font-weight:500;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .vessel-meta{font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:6px;flex-wrap:wrap;}
-  .vessel-open{text-align:right;flex-shrink:0;}
-  .open-date{font-size:12px;font-weight:500;color:var(--text);font-family:var(--mono);}
-  .open-port{font-size:10px;color:var(--text3);margin-top:2px;}
-  .status-pill{font-size:10px;padding:1px 6px;border-radius:10px;margin-top:3px;display:inline-block;font-family:var(--mono);}
-  .status-spot{background:var(--green-dim);color:var(--green);}
-  .status-subs{background:var(--amber-dim);color:var(--amber);}
-  .status-update{background:var(--coral-dim);color:var(--coral);}
-  .cargo-row{padding:11px 14px;border-bottom:1px solid var(--border);background:var(--bg);}
-  .cargo-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
-  .cargo-account{font-size:13px;font-weight:500;color:var(--text);}
-  .cargo-type-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-family:var(--mono);flex-shrink:0;}
-  .tct-badge{background:var(--accent-dim);color:var(--accent);}
-  .voy-badge{background:var(--teal-dim);color:var(--teal);}
-  .cargo-details{font-size:12px;color:var(--text2);margin-top:4px;}
-  .cargo-route{font-size:11px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:4px;}
-  .cargo-pills{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
-  .cpill{font-size:10px;padding:2px 7px;border-radius:10px;background:var(--bg4);color:var(--text3);font-family:var(--mono);}
-  #detail{display:none;flex-direction:column;height:100dvh;height:100vh;}
-  #detail.show{display:flex;}
-  .detail-topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;}
-  .detail-topbar-inner{display:flex;align-items:center;gap:12px;padding:12px 16px;}
-  .back-btn{background:var(--bg4);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 10px;color:var(--text2);font-size:13px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:var(--font);transition:all 0.15s;}
-  .back-btn:hover{color:var(--accent);border-color:var(--accent);}
-  .detail-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px;}
-  .detail-header{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;}
-  .detail-vessel-name{font-size:18px;font-weight:600;margin-bottom:4px;}
-  .detail-owner{font-size:13px;color:var(--text2);margin-bottom:12px;}
-  .detail-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
-  .detail-stat{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;}
-  .detail-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;}
-  .detail-stat-value{font-size:15px;font-weight:500;font-family:var(--mono);}
-  .detail-comments{background:var(--bg3);border-radius:var(--radius-sm);padding:10px 12px;margin-top:8px;font-size:12px;color:var(--text2);line-height:1.5;}
-  .section-header{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
-  .section-header::after{content:'';flex:1;height:1px;background:var(--border);}
-  .match-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
-  .match-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;}
-  .match-account{font-size:13px;font-weight:500;}
-  .match-cargo{font-size:12px;color:var(--text2);margin-bottom:4px;}
-  .match-route{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px;}
-  .match-pills{display:flex;gap:5px;margin-top:8px;flex-wrap:wrap;}
-  .no-match{font-size:13px;color:var(--text3);text-align:center;padding:1.5rem 0;}
-  .legend{display:flex;gap:6px;padding:8px 14px;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto;flex-shrink:0;scrollbar-width:none;}
-  .legend::-webkit-scrollbar{display:none;}
-  .legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3);white-space:nowrap;}
-  .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
-  .toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:10px 18px;font-size:13px;color:var(--text);z-index:999;transition:transform 0.3s;white-space:nowrap;}
-  .toast.show{transform:translateX(-50%) translateY(0);}
-  .region-divider{padding:6px 14px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;display:flex;align-items:center;gap:8px;}
-  .region-divider::after{content:'';flex:1;height:1px;background:var(--border);}
-  .safe-bottom{height:env(safe-area-inset-bottom,0px);background:var(--bg2);flex-shrink:0;}
+body{font-family:monospace;background:#0d0f12;color:#e8eaf0;padding:16px;font-size:12px;}
+button{background:#3b82f6;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;margin:4px;font-size:13px;}
+.row{padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+.ok{color:#10b981;} .err{color:#ef4444;} .warn{color:#f59e0b;}
+pre{white-space:pre-wrap;word-break:break-all;background:#13161b;padding:10px;border-radius:6px;margin:8px 0;}
 </style>
 </head>
 <body>
-
-<div id="loading">
-  <div class="loading-logo">⚓</div>
-  <div class="loading-title">Cargo Tracker</div>
-  <div class="spinner"></div>
-  <div class="loading-status" id="loadingStatus">Loading Daily List…</div>
-</div>
-
-<div id="errorScreen">
-  <div class="error-icon">⚠️</div>
-  <div class="error-title">Could not load data</div>
-  <div class="error-msg" id="errorMsg">Check your internet connection and try again.</div>
-  <button class="retry-btn" onclick="fetchData()">Try again</button>
-</div>
-
-<div id="app">
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="topbar-logo">⚓</div>
-      <div style="flex:1;">
-        <div class="topbar-title">Cargo Tracker</div>
-        <div class="topbar-sub" id="topMeta"></div>
-      </div>
-      <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
-        Refresh
-      </button>
-    </div>
-  </div>
-  <div class="stats-row">
-    <div class="stat-cell"><div class="stat-n" id="statVessels">0</div><div class="stat-l">Vessels</div></div>
-    <div class="stat-cell"><div class="stat-n" id="statTCT">0</div><div class="stat-l">TCT Orders</div></div>
-    <div class="stat-cell"><div class="stat-n" id="statVOY">0</div><div class="stat-l">VOY Orders</div></div>
-  </div>
-  <div class="search-wrap">
-    <div class="search-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <input type="text" id="searchInput" placeholder="Search vessel, port, owner, cargo…" oninput="onSearch()">
-      <button class="clear-btn" id="clearBtn" onclick="clearSearch()" aria-label="Clear">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-    <div class="filter-scroll" id="filterRow"></div>
-  </div>
-  <div class="tabs">
-    <button class="tab active" id="tab-tonnage" onclick="setTab('tonnage')">Tonnage <span class="tab-count" id="cnt-tonnage">0</span></button>
-    <button class="tab" id="tab-tct" onclick="setTab('tct')">Cargo TCT <span class="tab-count" id="cnt-tct">0</span></button>
-    <button class="tab" id="tab-voy" onclick="setTab('voy')">Cargo VOY <span class="tab-count" id="cnt-voy">0</span></button>
-  </div>
-  <div class="legend" id="dwtLegend">
-    <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div>&lt;30k HS</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div>30–44k HM</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#a78bfa;"></div>45–64k SM</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#f59e0b;"></div>65–81k PM</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#ef4444;"></div>82k+ CP</div>
-  </div>
-  <div class="list-wrap" id="listWrap"></div>
-  <div class="safe-bottom"></div>
-</div>
-
-<div id="detail">
-  <div class="detail-topbar">
-    <div class="detail-topbar-inner">
-      <button class="back-btn" onclick="goBack()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
-        Back
-      </button>
-      <div style="font-size:13px;color:var(--text2);font-weight:500;" id="detailBreadcrumb"></div>
-    </div>
-  </div>
-  <div class="detail-scroll" id="detailScroll"></div>
-  <div class="safe-bottom"></div>
-</div>
-
-<div class="toast" id="toast"></div>
-
+<h2>Cargo Tracker — Debug</h2>
+<button onclick="runDebug()">Fetch & Inspect TONNAGE sheet</button>
+<div id="out"></div>
 <script>
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
-const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
-const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
+const GID = '1517312983';
 
-let vessels=[], tct=[], voy=[];
-let activeTab='tonnage', activeRegion='all', searchQuery='';
+async function runDebug() {
+  const out = document.getElementById('out');
+  out.innerHTML = '<p class="warn">Fetching...</p>';
 
-function sheetURL(gid) {
-  return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+  out.innerHTML += `<p>URL: ${url}</p>`;
+
+  try {
+    const res = await fetch(url);
+    out.innerHTML += `<p class="${res.ok?'ok':'err'}">Status: ${res.status} ${res.statusText}</p>`;
+    if (!res.ok) { out.innerHTML += '<p class="err">Failed to fetch — sheet may not be public</p>'; return; }
+
+    const text = await res.text();
+    out.innerHTML += `<p class="ok">Got ${text.length} chars</p>`;
+    out.innerHTML += `<p>First 500 chars:</p><pre>${escHtml(text.slice(0,500))}</pre>`;
+
+    // Parse CSV
+    const rows = parseCSV(text);
+    out.innerHTML += `<p class="ok">Parsed ${rows.length} rows</p>`;
+    out.innerHTML += `<p>First 10 rows:</p>`;
+    rows.slice(0,10).forEach((row,i) => {
+      out.innerHTML += `<div class="row"><b>[${i}]</b> ${row.slice(0,5).map(c=>`<span style="margin-right:12px">${escHtml(String(c??'null'))}</span>`).join('')}</div>`;
+    });
+
+    // Check for Vessel Name
+    let found = -1;
+    rows.forEach((row,i) => { if (String(row[0]||'').trim() === 'Vessel Name') found = i; });
+    out.innerHTML += found>=0
+      ? `<p class="ok">✓ Found "Vessel Name" at row ${found}</p>`
+      : `<p class="err">✗ "Vessel Name" NOT found in column A</p>`;
+
+    // Show all column A values
+    out.innerHTML += `<p>All column A values:</p>`;
+    rows.forEach((row,i) => {
+      const v = String(row[0]||'').trim();
+      if (v) out.innerHTML += `<div class="row">[${i}] <span class="${v.startsWith('MV')?'ok':v==='Vessel Name'?'warn':''}">${escHtml(v)}</span></div>`;
+    });
+
+  } catch(e) {
+    out.innerHTML += `<p class="err">Error: ${e.message}</p>`;
+  }
 }
 
-async function fetchSheet(gid) {
-  const res = await fetch(sheetURL(gid));
-  if (!res.ok) throw new Error(`HTTP ${res.status} loading sheet gid=${gid}`);
-  const text = await res.text();
-  return parseCSV(text);
-}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 function parseCSV(text) {
-  const rows = [];
-  const lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  const rows=[];
+  const lines=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
   for (const line of lines) {
     if (!line.trim()) continue;
-    const cols = []; let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQ && line[i+1] === '"') { cur += '"'; i++; }
-        else inQ = !inQ;
-      } else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
-      else cur += ch;
+    const cols=[];let cur='',inQ=false;
+    for (let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){if(inQ&&line[i+1]==='"'){cur+='"';i++;}else inQ=!inQ;}
+      else if(ch===','&&!inQ){cols.push(cur);cur='';}
+      else cur+=ch;
     }
     cols.push(cur);
-    rows.push(cols.map(c => c.trim() === '' ? null : c.trim()));
+    rows.push(cols.map(c=>c.trim()===''?null:c.trim()));
   }
   return rows;
 }
-
-function parseDWT(raw) {
-  if (!raw) return null;
-  const n = String(raw).replace(/[^\d]/g,'');
-  const v = parseInt(n,10);
-  return isNaN(v) ? null : v;
-}
-
-function isRegionHeader(row) {
-  const f = String(row[0]||'').trim();
-  if (!f || f.startsWith('MV ') || f==='Vessel Name' || f==='ACCOUNT' || f.startsWith('Daily')) return false;
-  const hasCols = row.slice(1,6).some(c => c != null && String(c).trim() !== '');
-  return !hasCols && f.length > 1 && f.length < 40;
-}
-
-function parseTonnage(rows) {
-  const result=[]; let region='', started=false;
-  for (const row of rows) {
-    const f = String(row[0]||'').trim();
-    // find header row - look for "Vessel Name" anywhere
-    if (f === 'Vessel Name' || f === 'VESSEL NAME') { started=true; continue; }
-    if (!started) continue;
-    // skip empty rows
-    if (!f) continue;
-    // region header detection
-    if (isRegionHeader(row)) { region=f.replace(/[\u2013\u2014]/g,'-').trim(); continue; }
-    // vessel rows must start with MV
-    if (!f.startsWith('MV ')) continue;
-    // DWT: handle both "26,700DWT" and plain "26700" and "26,700"
-    const dwtRaw = row[1] ? String(row[1]).replace(/,/g,'') : null;
-    const dwt = dwtRaw ? parseDWT(dwtRaw) : null;
-    result.push({
-      vesselName:f, dwt,
-      blt:row[2]?parseInt(String(row[2]).replace(/,/g,'')):null,
-      bssPort:String(row[3]||'').trim(),
-      region:region||String(row[4]||'').trim(),
-      open:String(row[5]||'').trim(),
-      owner:String(row[6]||'').trim(),
-      comments:String(row[7]||'').trim(),
-      needsUpdate:String(row[9]||'').toLowerCase().includes('update'),
-      onSubs:String(row[9]||'').toLowerCase().includes('subs'),
-    });
-  }
-  return result;
-}
-
-function parseTCT(rows) {
-  const result=[]; let started=false;
-  for (const row of rows) {
-    const f=String(row[0]||'').trim();
-    if (f==='ACCOUNT'){started=true;continue;}
-    if (!started||!f||f==='Daily CGO List') continue;
-    if (isRegionHeader(row)||(!row[2]&&!row[3])) continue;
-    result.push({account:f,cargo:String(row[1]||'').trim(),tonnage:String(row[2]||'').trim(),
-      delivery:String(row[3]||'').trim(),redelivery:String(row[4]||'').trim(),
-      laycan:String(row[5]||'').trim(),type:'TCT'});
-  }
-  return result;
-}
-
-function parseVOY(rows) {
-  const result=[]; let started=false;
-  for (const row of rows) {
-    const f=String(row[0]||'').trim();
-    if (f==='ACCOUNT'){started=true;continue;}
-    if (!started||!f||f==='Daily CGO List') continue;
-    if (isRegionHeader(row)||(!row[1]&&!row[2])) continue;
-    result.push({account:f,cargo:String(row[1]||'').trim(),tonnage:String(row[2]||'').trim(),
-      loadPort:String(row[3]||'').trim(),dischargePort:String(row[4]||'').trim(),
-      laycan:String(row[5]||'').trim(),type:'VOY'});
-  }
-  return result;
-}
-
-function tonnageToRange(t) {
-  if (!t) return [0,999999];
-  const s=t.toUpperCase();
-  if (s.includes('SMX')&&s.includes('UMX')) return [40000,70000];
-  if (s.includes('HMX')) return [50000,85000];
-  if (s.includes('SMX')) return [40000,65000];
-  if (s.includes('UMX')) return [55000,70000];
-  const nums=t.match(/\d+/g);
-  if (nums&&nums.length>=2) return [parseInt(nums[0])*1000,parseInt(nums[1])*1000];
-  if (nums&&nums.length===1){const v=parseInt(nums[0]);return [v*0.9,v*1.1];}
-  return [0,999999];
-}
-
-function cargoMatchesVessel(o,v) {
-  if (!v.dwt) return false;
-  const [lo,hi]=tonnageToRange(o.tonnage);
-  return v.dwt>=lo*0.85&&v.dwt<=hi*1.15;
-}
-
-async function fetchData() {
-  document.getElementById('loading').classList.remove('hidden');
-  document.getElementById('errorScreen').classList.remove('show');
-  document.getElementById('app').classList.remove('show');
-  try {
-    document.getElementById('loadingStatus').textContent = 'Loading vessels…';
-    vessels = parseTonnage(await fetchSheet(GIDS.tonnage));
-    document.getElementById('loadingStatus').textContent = 'Loading TCT orders…';
-    tct = parseTCT(await fetchSheet(GIDS.tct));
-    document.getElementById('loadingStatus').textContent = 'Loading VOY orders…';
-    voy = parseVOY(await fetchSheet(GIDS.voy));
-    launchApp();
-  } catch(err) {
-    document.getElementById('loading').classList.add('hidden');
-    document.getElementById('errorScreen').classList.add('show');
-    document.getElementById('errorMsg').textContent = err.message;
-  }
-}
-
-async function refreshData() {
-  const btn=document.getElementById('refreshBtn');
-  btn.classList.add('spinning');
-  try {
-    vessels=parseTonnage(await fetchSheet(GIDS.tonnage));
-    tct=parseTCT(await fetchSheet(GIDS.tct));
-    voy=parseVOY(await fetchSheet(GIDS.voy));
-    updateStats(); buildFilters(); renderList();
-    const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-    document.getElementById('topMeta').textContent='Updated '+now;
-    showToast('Refreshed · '+vessels.length+' vessels');
-  } catch(e){ showToast('Refresh failed — check connection'); }
-  btn.classList.remove('spinning');
-}
-
-function launchApp() {
-  document.getElementById('loading').classList.add('hidden');
-  document.getElementById('app').classList.add('show');
-  const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('topMeta').textContent='Updated '+now;
-  updateStats(); buildFilters(); renderList();
-  showToast('Loaded · '+vessels.length+' vessels · '+(tct.length+voy.length)+' orders');
-}
-
-function updateStats() {
-  document.getElementById('statVessels').textContent=vessels.length;
-  document.getElementById('statTCT').textContent=tct.length;
-  document.getElementById('statVOY').textContent=voy.length;
-}
-
-function dwtInfo(dwt) {
-  if (!dwt) return {cls:'uk',label:'?',size:'—'};
-  if (dwt<30000) return {cls:'hs',label:(dwt/1000).toFixed(0)+'k',size:'HS'};
-  if (dwt<45000) return {cls:'hm',label:(dwt/1000).toFixed(0)+'k',size:'HM'};
-  if (dwt<65000) return {cls:'sm',label:(dwt/1000).toFixed(0)+'k',size:'SM'};
-  if (dwt<82000) return {cls:'pm',label:(dwt/1000).toFixed(0)+'k',size:'PM'};
-  return {cls:'cp',label:(dwt/1000).toFixed(0)+'k',size:'CP'};
-}
-
-function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-
-function buildFilters() {
-  const regions=['all',...new Set(vessels.map(v=>v.region).filter(Boolean))];
-  const ordered=['all',...REGIONS_ORDER.filter(r=>regions.includes(r)),...regions.filter(r=>r!=='all'&&!REGIONS_ORDER.includes(r))];
-  const unique=[...new Set(ordered)];
-  const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI','CHINA':'China','VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo','MED':'Med','AFRICA':'Africa','ATLANTIC':'Atlantic'};
-  document.getElementById('filterRow').innerHTML=unique.map(r=>`<button class="fpill${r===activeRegion?' active':''}" onclick="setRegion('${r}',this)">${labels[r]||r}</button>`).join('');
-}
-
-function setRegion(r,el){activeRegion=r;document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderList();}
-function setTab(t){activeTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.getElementById('dwtLegend').style.display=t==='tonnage'?'flex':'none';renderList();}
-function onSearch(){searchQuery=document.getElementById('searchInput').value.toLowerCase();document.getElementById('clearBtn').classList.toggle('show',searchQuery.length>0);renderList();}
-function clearSearch(){searchQuery='';document.getElementById('searchInput').value='';document.getElementById('clearBtn').classList.remove('show');renderList();}
-
-function renderList(){
-  const wrap=document.getElementById('listWrap');wrap.innerHTML='';
-  if (activeTab==='tonnage') renderTonnage(wrap);
-  else if (activeTab==='tct') renderCargo(wrap,tct,'TCT');
-  else renderCargo(wrap,voy,'VOY');
-}
-
-function renderTonnage(wrap){
-  const filtered=vessels.filter(v=>{
-    const rMatch=activeRegion==='all'||v.region===activeRegion;
-    const qMatch=!searchQuery||v.vesselName.toLowerCase().includes(searchQuery)||(v.bssPort||'').toLowerCase().includes(searchQuery)||(v.owner||'').toLowerCase().includes(searchQuery)||(v.region||'').toLowerCase().includes(searchQuery);
-    return rMatch&&qMatch;
-  });
-  document.getElementById('cnt-tonnage').textContent=filtered.length;
-  if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>No vessels match</div>`;return;}
-  if (activeRegion==='all'&&!searchQuery){
-    const groups={};
-    for (const v of filtered){const r=v.region||'Other';if(!groups[r])groups[r]=[];groups[r].push(v);}
-    const order=[...REGIONS_ORDER,...Object.keys(groups).filter(r=>!REGIONS_ORDER.includes(r))];
-    for (const r of order){
-      if (!groups[r]) continue;
-      const div=document.createElement('div');div.className='region-divider';div.textContent=r;wrap.appendChild(div);
-      for (const v of groups[r]) wrap.appendChild(vesselRow(v));
-    }
-  } else { for (const v of filtered) wrap.appendChild(vesselRow(v)); }
-}
-
-function vesselRow(v){
-  const info=dwtInfo(v.dwt);const el=document.createElement('div');el.className='vessel-row';
-  const statusCls=v.onSubs?'status-subs':v.needsUpdate?'status-update':(v.open&&v.open.toUpperCase()==='SPOT'?'status-spot':'');
-  const statusLabel=v.onSubs?'On subs':v.needsUpdate?'Update':(v.open&&v.open.toUpperCase()==='SPOT'?'Spot':'');
-  el.innerHTML=`<div class="dwt-badge ${info.cls}"><span>${info.label}</span><span style="font-size:9px;">${info.size}</span></div>
-    <div class="vessel-info"><div class="vessel-name">${v.vesselName}</div>
-    <div class="vessel-meta"><span>${v.owner||'—'}</span>${v.blt?`<span>· ${v.blt}</span>`:''}</div></div>
-    <div class="vessel-open"><div class="open-date">${v.open||'—'}</div><div class="open-port">${v.bssPort||''}</div>
-    ${statusLabel?`<div class="status-pill ${statusCls}">${statusLabel}</div>`:''}</div>`;
-  el.addEventListener('click',()=>showDetail(v));return el;
-}
-
-function renderCargo(wrap,orders,type){
-  const countId=type==='TCT'?'cnt-tct':'cnt-voy';
-  const filtered=orders.filter(o=>!searchQuery||(o.account||'').toLowerCase().includes(searchQuery)||(o.cargo||'').toLowerCase().includes(searchQuery)||(o.delivery||o.loadPort||'').toLowerCase().includes(searchQuery)||(o.redelivery||o.dischargePort||'').toLowerCase().includes(searchQuery)||(o.laycan||'').toLowerCase().includes(searchQuery));
-  document.getElementById(countId).textContent=filtered.length;
-  if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div>No ${type} orders match</div>`;return;}
-  for (const o of filtered){
-    const el=document.createElement('div');el.className='cargo-row';
-    const isTCT=type==='TCT';
-    const route=isTCT?`${o.delivery||'—'} → ${o.redelivery||'—'}`:`${o.loadPort||'—'} → ${o.dischargePort||'—'}`;
-    el.innerHTML=`<div class="cargo-top"><div class="cargo-account">${o.account}</div><span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
-      <div class="cargo-details">${o.cargo||'—'} · ${o.tonnage||'—'}</div>
-      <div class="cargo-route"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${route}</div>
-      <div class="cargo-pills"><span class="cpill">${o.laycan||'—'}</span></div>`;
-    wrap.appendChild(el);
-  }
-}
-
-function showDetail(vessel){
-  document.getElementById('app').style.display='none';
-  document.getElementById('detail').classList.add('show');
-  document.getElementById('detailBreadcrumb').textContent=vessel.region||'';
-  const info=dwtInfo(vessel.dwt);
-  const matchedTCT=tct.filter(o=>cargoMatchesVessel(o,vessel));
-  const matchedVOY=voy.filter(o=>cargoMatchesVessel(o,vessel));
-  const matchHTML=(orders,type)=>{
-    if (!orders.length) return '';
-    const isTCT=type==='TCT';
-    return orders.map(o=>{
-      const route=isTCT?`${o.delivery||'—'} → ${o.redelivery||'—'}`:`${o.loadPort||'—'} → ${o.dischargePort||'—'}`;
-      return `<div class="match-card"><div class="match-top"><div class="match-account">${o.account}</div><span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
-        <div class="match-cargo">${o.cargo||'—'} · ${o.tonnage||'—'}</div>
-        <div class="match-route"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>${route}</div>
-        <div class="match-pills"><span class="cpill">${o.laycan||'—'}</span></div></div>`;
-    }).join('');
-  };
-  const total=matchedTCT.length+matchedVOY.length;
-  document.getElementById('detailScroll').innerHTML=`
-    <div class="detail-header">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
-        <div class="detail-vessel-name">${vessel.vesselName}</div>
-        <div class="dwt-badge ${info.cls}" style="flex-shrink:0;"><span>${info.label}</span><span style="font-size:9px;">${info.size}</span></div>
-      </div>
-      <div class="detail-owner">${vessel.owner||'—'}</div>
-      <div class="detail-grid">
-        <div class="detail-stat"><div class="detail-stat-label">DWT</div><div class="detail-stat-value">${vessel.dwt?vessel.dwt.toLocaleString():'—'}</div></div>
-        <div class="detail-stat"><div class="detail-stat-label">Built</div><div class="detail-stat-value">${vessel.blt||'—'}</div></div>
-        <div class="detail-stat"><div class="detail-stat-label">Open port</div><div class="detail-stat-value" style="font-size:13px;">${vessel.bssPort||'—'}</div></div>
-        <div class="detail-stat"><div class="detail-stat-label">Open date</div><div class="detail-stat-value" style="font-size:13px;">${vessel.open||'—'}</div></div>
-      </div>
-      ${vessel.comments?`<div class="detail-comments">${vessel.comments}</div>`:''}
-    </div>
-    <div class="section-header">Cargo matches (${total})</div>
-    ${total===0?`<div class="no-match">No cargo orders match this vessel's DWT</div>`:matchHTML(matchedTCT,'TCT')+matchHTML(matchedVOY,'VOY')}`;
-}
-
-function goBack(){document.getElementById('detail').classList.remove('show');document.getElementById('app').style.display='flex';}
-
-fetchData();
 </script>
 </body>
 </html>
