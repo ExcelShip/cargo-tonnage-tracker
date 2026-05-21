@@ -1,0 +1,19 @@
+{
+  "name": "Excel Shipbrokers Money List",
+  "short_name": "Money List",
+  "description": "Live cargo and tonnage tracking for Excel Shipbrokers",
+  "start_url": "/cargo-tonnage-tracker/",
+  "scope": "/cargo-tonnage-tracker/",
+  "display": "standalone",
+  "background_color": "#0d0f12",
+  "theme_color": "#0d0f12",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
