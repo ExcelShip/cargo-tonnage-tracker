@@ -322,24 +322,28 @@ function isRegionHeader(row) {
 }
 
 function parseTonnage(rows) {
-  const result=[]; let region='', started=false;
+  const result=[]; let region='';
   for (const row of rows) {
     const f = String(row[0]||'').trim();
-    if (f==='Vessel Name'){started=true;continue;}
-    if (!started) continue;
-    if (isRegionHeader(row)){region=f.replace(/[–—]/g,'-').trim();continue;}
-    if (!f.startsWith('MV ')) continue;
-    result.push({
-      vesselName:f, dwt:parseDWT(row[1]),
-      blt:row[2]?parseInt(row[2]):null,
-      bssPort:String(row[3]||'').trim(),
-      region:region||String(row[4]||'').trim(),
-      open:String(row[5]||'').trim(),
-      owner:String(row[6]||'').trim(),
-      comments:String(row[7]||'').trim(),
-      needsUpdate:String(row[9]||'').toLowerCase().includes('update'),
-      onSubs:String(row[9]||'').toLowerCase().includes('subs'),
-    });
+    if (!f) continue;
+    if (f.startsWith('MV ')) {
+      const dwtVal = String(row[1]||'').replace(/,/g,'').replace(/[^0-9]/g,'');
+      const dwt = dwtVal ? parseInt(dwtVal,10) : null;
+      result.push({
+        vesselName:f,
+        dwt: (dwt && !isNaN(dwt)) ? dwt : null,
+        blt: row[2] ? parseInt(String(row[2]).replace(/[^0-9]/g,'')) : null,
+        bssPort: String(row[3]||'').trim(),
+        region: region || String(row[4]||'').trim(),
+        open: String(row[5]||'').trim(),
+        owner: String(row[6]||'').trim(),
+        comments: String(row[7]||'').trim(),
+        needsUpdate: String(row[9]||'').toLowerCase().includes('update'),
+        onSubs: String(row[9]||'').toLowerCase().includes('subs'),
+      });
+    } else if (!f.startsWith('Daily') && !f.includes('Vessel') && !row.slice(1,5).some(c=>c!=null&&String(c).trim()!=='')) {
+      region = f.replace(/[^a-zA-Z0-9 .\-]/g,' ').replace(/\s+/g,' ').trim();
+    }
   }
   return result;
 }
