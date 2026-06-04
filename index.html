@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0045)file:///C:/Users/migue/Downloads/index_1.html -->
+<!-- saved from url=(0043)file:///C:/Users/migue/Downloads/index.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -424,14 +424,76 @@ if (s.includes('AUSTRALIA')||s.includes('BRISBANE')||s.includes('HEDLAND')||
 s.includes('LYTTELTON')||s.includes('FREMANTLE')||s.includes('NEWCASTLE')) return 'AUSTRALIA';
 return s;
 }
+// ── DATE PARSING ── tolerant: converts any open/laycan string to a [startDay,endDay] window
+// Returns null when it can't understand the string (caller treats null as "matches anything")
+const MONTHS={JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+function monthIndex(s){
+for(const k in MONTHS){if(s.includes(k))return MONTHS[k];}
+return -1;
+}
+function daysInMonth(m,y){return new Date(y,m+1,0).getDate();}
+// convert a (month,day) into an absolute day number relative to "today's" year, handling year-wrap
+function absDay(m,d,refYear){
+const dt=new Date(refYear,m,d);
+return Math.round(dt.getTime()/86400000);
+}
+function parseDateWindow(raw){
+if(!raw)return null;
+let s=String(raw).toUpperCase().replace(/[._]/g,' ').replace(/ +/g,' ').trim();
+if(!s||s==='—'||s==='-')return null;
+const now=new Date();
+const refYear=now.getFullYear();
+const today=Math.round(now.getTime()/86400000);
+// SPOT / PROMPT / PPT — available now
+if(s.includes('SPOT')||s.includes('PROMPT')||s==='PPT'||s.includes('PPT')) return [today,today+5];
+const ABT=/ABT|ABOUT|APPROX/.test(s);
+const buffer=ABT?2:0;
+// normalize full month names to 3-letter
+s=s.replace(/JANUARY/,'JAN').replace(/FEBRUARY/,'FEB').replace(/MARCH/,'MAR')
+ .replace(/APRIL/,'APR').replace(/JUNE/,'JUN').replace(/JULY/,'JUL')
+ .replace(/AUGUST/,'AUG').replace(/SEPTEMBER/,'SEP').replace(/OCTOBER/,'OCT')
+ .replace(/NOVEMBER/,'NOV').replace(/DECEMBER/,'DEC');
+const m=monthIndex(s);
+if(m<0)return null; // no month found → unparseable
+const dim=daysInMonth(m,refYear);
+// EARLY / MID / END / LATE thirds
+let third=null;
+if(s.includes('EARLY'))third=[1,10];
+else if(s.includes('MID'))third=[11,20];
+else if(s.includes('END')||s.includes('LATE'))third=[21,dim];
+if(third){
+return [absDay(m,third[0],refYear)-buffer, absDay(m,third[1],refYear)+buffer];
+}
+// numeric day(s): grab 1 or 2 numbers
+const nums=s.match(/\d{1,2}/g);
+if(nums&&nums.length>=2){
+let d1=parseInt(nums[0]),d2=parseInt(nums[1]);
+d1=Math.min(Math.max(d1,1),dim); d2=Math.min(Math.max(d2,1),dim);
+return [absDay(m,Math.min(d1,d2),refYear)-buffer, absDay(m,Math.max(d1,d2),refYear)+buffer];
+}
+if(nums&&nums.length===1){
+let d=parseInt(nums[0]); d=Math.min(Math.max(d,1),dim);
+return [absDay(m,d,refYear)-buffer, absDay(m,d,refYear)+buffer];
+}
+// month only, no day → whole month
+return [absDay(m,1,refYear), absDay(m,dim,refYear)];
+}
+function datesOverlap(a,b){
+if(!a||!b)return true; // unparseable on either side → don't exclude
+return a[0]<=b[1] && b[0]<=a[1];
+}
 function cargoMatchesVessel(order,vessel) {
 if (!vessel.dwt) return false;
 const [lo,hi]=tonnageToRange(order.tonnage);
 if (!(vessel.dwt>=lo*0.85&&vessel.dwt<=hi*1.15)) return false;
 const vR=normalizeRegion(vessel.region||'');
 const oR=normalizeRegion(order.region||'');
-if (!vR||!oR) return true;
-return vR===oR;
+if (vR&&oR&&vR!==oR) return false;
+// date window: vessel open vs cargo laycan must overlap (unparseable = allowed)
+const vWin=parseDateWindow(vessel.open);
+const oWin=parseDateWindow(order.laycan);
+if(!datesOverlap(vWin,oWin)) return false;
+return true;
 }
 // ── APP LAUNCH ──
 function launchApp() {
