@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0043)file:///C:/Users/migue/Downloads/index.html -->
+<!-- saved from url=(0045)file:///C:/Users/migue/Downloads/index_2.html -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
@@ -354,16 +354,39 @@ laycan:String(row[5]||'').trim(),region,type:'VOY'});
 }
 return result;
 }
+// Official vessel segment boundaries (DWT)
+const SEGMENTS={
+HANDY:[10000,39999],
+HMX:[40000,49999],      // Handymax
+SMX:[50000,59000],      // Supramax
+UMX:[60000,68000],      // Ultramax
+PMX:[69000,79000],      // Panamax
+KMX:[80000,87000],      // Kamsarmax
+POSTPMX:[87001,125000], // Post-Panamax
+CAPE:[125001,400000]    // Suezmax / Capesize
+};
 function tonnageToRange(t) {
 if (!t) return [0,999999];
 const s=t.toUpperCase();
-if (s.includes('SMX')&&s.includes('UMX')) return [40000,70000];
-if (s.includes('HMX')) return [50000,85000];
-if (s.includes('SMX')) return [40000,65000];
-if (s.includes('UMX')) return [55000,70000];
+// collect every segment keyword mentioned, then span min-low to max-high
+const hits=[];
+if (/\bHANDY(?!MAX)\b|\bHDY\b/.test(s)&&!s.includes('HMX')&&!s.includes('HANDYMAX')) hits.push(SEGMENTS.HANDY);
+if (s.includes('HMX')||s.includes('HANDYMAX')) hits.push(SEGMENTS.HMX);
+if (s.includes('SMX')||s.includes('SUPRA')) hits.push(SEGMENTS.SMX);
+if (s.includes('UMX')||s.includes('ULTRA')) hits.push(SEGMENTS.UMX);
+if (s.includes('PMX')||s.includes('PANA')) hits.push(SEGMENTS.PMX);
+if (s.includes('KMX')||s.includes('KAMSAR')) hits.push(SEGMENTS.KMX);
+if (s.includes('POST')) hits.push(SEGMENTS.POSTPMX);
+if (s.includes('CAPE')||s.includes('SUEZ')) hits.push(SEGMENTS.CAPE);
+if (hits.length){
+const lo=Math.min(...hits.map(h=>h[0]));
+const hi=Math.max(...hits.map(h=>h[1]));
+return [lo,hi];
+}
+// explicit numeric ranges like "55-60" or "55/60" (in thousands)
 const nums=t.match(/\d+/g);
 if (nums&&nums.length>=2) return [parseInt(nums[0])*1000,parseInt(nums[1])*1000];
-if (nums&&nums.length===1){const v=parseInt(nums[0]);return [v*0.9,v*1.1];}
+if (nums&&nums.length===1){const v=parseInt(nums[0]);return [v*1000*0.95,v*1000*1.05];}
 return [0,999999];
 }
 function normalizeRegion(r) {
@@ -485,7 +508,7 @@ return a[0]<=b[1] && b[0]<=a[1];
 function cargoMatchesVessel(order,vessel) {
 if (!vessel.dwt) return false;
 const [lo,hi]=tonnageToRange(order.tonnage);
-if (!(vessel.dwt>=lo*0.85&&vessel.dwt<=hi*1.15)) return false;
+if (!(vessel.dwt>=lo&&vessel.dwt<=hi)) return false;
 const vR=normalizeRegion(vessel.region||'');
 const oR=normalizeRegion(order.region||'');
 if (vR&&oR&&vR!==oR) return false;
@@ -513,11 +536,15 @@ document.getElementById('statVOY').textContent = voy.length;
 }
 function dwtInfo(dwt) {
 if (!dwt) return {cls:'uk',label:'?',size:'—'};
-if (dwt<30000) return {cls:'hs',label:(dwt/1000).toFixed(0)+'k',size:'HS'};
-if (dwt<45000) return {cls:'hm',label:(dwt/1000).toFixed(0)+'k',size:'HM'};
-if (dwt<65000) return {cls:'sm',label:(dwt/1000).toFixed(0)+'k',size:'SM'};
-if (dwt<82000) return {cls:'pm',label:(dwt/1000).toFixed(0)+'k',size:'PM'};
-return {cls:'cp',label:(dwt/1000).toFixed(0)+'k',size:'CP'};
+const k=(dwt/1000).toFixed(0)+'k';
+if (dwt<40000) return {cls:'hs',label:k,size:'HANDY'};
+if (dwt<50000) return {cls:'hm',label:k,size:'HMX'};
+if (dwt<59001) return {cls:'sm',label:k,size:'SMX'};
+if (dwt<68001) return {cls:'sm',label:k,size:'UMX'};
+if (dwt<79001) return {cls:'pm',label:k,size:'PMX'};
+if (dwt<87001) return {cls:'pm',label:k,size:'KMX'};
+if (dwt<=125000) return {cls:'cp',label:k,size:'P-PMX'};
+return {cls:'cp',label:k,size:'CAPE'};
 }
 function showToast(msg) {
 const t=document.getElementById('toast');
