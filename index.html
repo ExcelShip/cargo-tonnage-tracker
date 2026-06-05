@@ -245,7 +245,7 @@ Back
 <div class="toast" id="toast"></div>
 <script>
 // ── PASSWORD GATE ──
-const APP_PASSWORD = '3xcelsh!p3025'; // ← change this to your desired password
+const APP_PASSWORD = 'excel2025'; // ← change this to your desired password
 function checkPassword() {
   const input = document.getElementById('pwdInput');
   if (input.value === APP_PASSWORD) {
@@ -679,7 +679,7 @@ el.innerHTML=`<div class="cargo-top"><div class="cargo-account">${o.account}</di
 <div class="cargo-details"><span class="field-label">Cargo</span>${o.cargo||'—'} &nbsp;<span class="field-label">Size</span>${o.tonnage||'—'}</div>
 <div class="cargo-route"><span class="field-label">Route</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${route}</div>
 <div class="cargo-pills"><span class="cpill">${o.laycan||'—'}</span><span class="cpill" style="opacity:0.5">${o.region||'NO REGION'}</span></div>`;
-wrap.appendChild(el);
+el.style.cursor="pointer"; el.addEventListener("click",()=>showCargoDetail(o,type)); wrap.appendChild(el);
 }
 }
 // ── DETAIL ──
@@ -720,6 +720,47 @@ ${vessel.comments?`<div class="detail-comments">${vessel.comments}</div>`:''}
 </div>
 <div class="section-header">Cargo matches (${total})</div>
 ${total===0?`<div class="no-match">No cargo orders match this vessel's DWT</div>`:matchHTML(matchedTCT,'TCT')+matchHTML(matchedVOY,'VOY')}`;
+}
+// ── CARGO DETAIL ──
+function showCargoDetail(order,type){
+document.getElementById('app').style.display='none';
+document.getElementById('detail').classList.add('show');
+document.getElementById('detailBreadcrumb').textContent=order.region||'';
+const isTCT=type==='TCT';
+const route=isTCT?`${order.delivery||'—'} → ${order.redelivery||'—'}`:`${order.loadPort||'—'} → ${order.dischargePort||'—'}`;
+const matched=vessels.filter(v=>cargoMatchesVessel(order,v));
+const vesselMatchHTML=matched.map(v=>{
+const info=dwtInfo(v.dwt);
+const statusCls=v.onSubs?'status-subs':v.needsUpdate?'status-update':(v.open&&v.open.toUpperCase()==='SPOT'?'status-spot':'');
+const statusLabel=v.onSubs?'On subs':v.needsUpdate?'Update':(v.open&&v.open.toUpperCase()==='SPOT'?'Spot':'');
+return `<div class="match-card">
+<div class="match-top">
+<div class="match-account">${v.vesselName}</div>
+<div class="dwt-badge ${info.cls}" style="width:auto;padding:0 8px;height:28px;font-size:11px;">${info.label}<span style="font-size:9px;margin-left:3px;">${info.size}</span></div>
+</div>
+<div class="match-cargo"><span class="field-label">Owner</span>${v.owner||'—'}&nbsp;&nbsp;<span class="field-label">Built</span>${v.blt||'—'}</div>
+<div class="match-route"><span class="field-label">Open</span>${v.open||'—'} · ${v.bssPort||'—'}</div>
+${statusLabel?`<div class="match-pills"><span class="status-pill ${statusCls}" style="margin-top:6px;">${statusLabel}</span></div>`:''}
+</div>`;
+}).join('');
+document.getElementById('detailScroll').innerHTML=`
+<div class="detail-header">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
+<div class="detail-vessel-name">${order.account}</div>
+<span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}" style="flex-shrink:0;font-size:12px;padding:3px 10px;">${type}</span>
+</div>
+<div class="detail-grid">
+<div class="detail-stat"><div class="detail-stat-label">Cargo</div><div class="detail-stat-value" style="font-size:13px;">${order.cargo||'—'}</div></div>
+<div class="detail-stat"><div class="detail-stat-label">Size</div><div class="detail-stat-value" style="font-size:13px;">${order.tonnage||'—'}</div></div>
+<div class="detail-stat" style="grid-column:1/-1;"><div class="detail-stat-label">Route</div><div class="detail-stat-value" style="font-size:13px;">${route}</div></div>
+</div>
+<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;">
+<span class="cpill">${order.laycan||'—'}</span>
+<span class="cpill" style="opacity:0.6;">${order.region||'NO REGION'}</span>
+</div>
+</div>
+<div class="section-header">Vessel matches (${matched.length})</div>
+${matched.length===0?'<div class="no-match">No vessels match this cargo order</div>':vesselMatchHTML}`;
 }
 function goBack(){document.getElementById('detail').classList.remove('show');document.getElementById('app').style.display='flex';}
 // ── START ──
