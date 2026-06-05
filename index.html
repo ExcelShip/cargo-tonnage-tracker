@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<!-- saved from url=(0045)file:///C:/Users/migue/Downloads/index_4.html -->
-<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="en">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Money List">
 <meta name="theme-color" content="#0d0f12">
-<link rel="manifest" href="file:///C:/Users/migue/Downloads/manifest.json">
-<link rel="apple-touch-icon" href="file:///C:/Users/migue/Downloads/icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
 <title>Excel Shipbrokers Money List</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -145,30 +145,30 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 </head>
 <body>
 <!-- LOADING -->
-<div id="loading" class="hidden">
+<div id="loading">
 <div class="loading-logo">⚓</div>
 <div class="loading-title">Excel Shipbrokers Money List</div>
 <div class="spinner"></div>
-<div class="loading-status" id="loadingStatus">Loading data…</div>
+<div class="loading-status" id="loadingStatus">Connecting to Daily List…</div>
 </div>
 <!-- ERROR -->
-<div id="errorScreen" class="show">
+<div id="errorScreen">
 <div class="error-icon">⚠️</div>
 <div class="error-title">Could not load data</div>
-<div class="error-msg" id="errorMsg">Failed to fetch — Make sure the Google Sheet is set to "Anyone with the link can view".</div>
+<div class="error-msg" id="errorMsg">Make sure the Google Sheet is set to "Anyone with the link can view" and you have an internet connection.</div>
 <button class="retry-btn" onclick="fetchData()">Try again</button>
 </div>
 <!-- MAIN APP -->
 <div id="app">
 <div class="topbar">
 <div class="topbar-inner">
-<div class="topbar-logo" style="width:36px;height:36px;font-size:18px;">⚓</div>
+<img src="icon.png?v=2" alt="logo" style="width:36px;height:36px;object-fit:contain;border-radius:8px;" onerror="this.onerror=null;this.outerHTML='<div class=&quot;topbar-logo&quot; style=&quot;width:36px;height:36px;font-size:18px;&quot;>&#9875;</div>';">
 <div style="flex:1;">
 <div class="topbar-title">Excel Shipbrokers Money List</div>
 <div class="topbar-sub" id="topMeta"></div>
 </div>
 <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
-<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
 Refresh
 </button>
 </div>
@@ -180,18 +180,18 @@ Refresh
 </div>
 <div class="search-wrap">
 <div class="search-box">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.35-4.35"></path></svg>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
 <input type="text" id="searchInput" placeholder="Search vessel, port, owner, cargo…" oninput="onSearch()">
 <button class="clear-btn" id="clearBtn" onclick="clearSearch()" aria-label="Clear">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
 </button>
 </div>
 <div class="filter-scroll" id="filterRow"></div>
 </div>
 <div class="tabs">
-<button class="tab active" id="tab-tonnage" onclick="setTab(&#39;tonnage&#39;)">Tonnage <span class="tab-count" id="cnt-tonnage">0</span></button>
-<button class="tab" id="tab-tct" onclick="setTab(&#39;tct&#39;)">Cargo TCT <span class="tab-count" id="cnt-tct">0</span></button>
-<button class="tab" id="tab-voy" onclick="setTab(&#39;voy&#39;)">Cargo VOY <span class="tab-count" id="cnt-voy">0</span></button>
+<button class="tab active" id="tab-tonnage" onclick="setTab('tonnage')">Tonnage <span class="tab-count" id="cnt-tonnage">0</span></button>
+<button class="tab" id="tab-tct" onclick="setTab('tct')">Cargo TCT <span class="tab-count" id="cnt-tct">0</span></button>
+<button class="tab" id="tab-voy" onclick="setTab('voy')">Cargo VOY <span class="tab-count" id="cnt-voy">0</span></button>
 </div>
 <div class="legend" id="dwtLegend">
 <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div>&lt;30k HS</div>
@@ -208,7 +208,7 @@ Refresh
 <div class="detail-topbar">
 <div class="detail-topbar-inner">
 <button class="back-btn" onclick="goBack()">
-<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"></path></svg>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
 Back
 </button>
 <div style="font-size:13px;color:var(--text2);font-weight:500;" id="detailBreadcrumb"></div>
@@ -679,6 +679,5 @@ if('serviceWorker' in navigator){
 window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
 }
 </script>
-
-
-</body></html>
+</body>
+</html>
