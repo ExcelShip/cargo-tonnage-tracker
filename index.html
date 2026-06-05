@@ -141,11 +141,36 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .region-divider{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.12em;display:flex;align-items:center;gap:8px;}
 .region-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .safe-bottom{height:env(safe-area-inset-bottom,0px);background:var(--bg2);flex-shrink:0;}
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2000;padding:2rem;}
+#loginScreen.hidden{display:none;}
+.login-logo{width:64px;height:64px;border-radius:16px;background:var(--accent-dim);border:1px solid var(--accent);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:1.5rem;}
+.login-title{font-size:20px;font-weight:600;margin-bottom:4px;}
+.login-sub{font-size:13px;color:var(--text2);margin-bottom:2rem;text-align:center;}
+.login-box{width:100%;max-width:320px;display:flex;flex-direction:column;gap:10px;}
+.login-input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:12px 14px;font-size:15px;font-family:var(--font);color:var(--text);outline:none;transition:border-color 0.15s;}
+.login-input:focus{border-color:var(--accent);}
+.login-input.shake{animation:shake 0.35s;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.login-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:12px;font-size:15px;font-weight:500;font-family:var(--font);cursor:pointer;transition:opacity 0.15s;}
+.login-btn:active{opacity:0.85;}
+.login-error{font-size:12px;color:var(--coral);text-align:center;min-height:16px;}
 </style>
 </head>
 <body>
+<!-- LOGIN -->
+<div id="loginScreen">
+<div class="login-logo">⚓</div>
+<div class="login-title">Excel Shipbrokers</div>
+<div class="login-sub">Enter password to access the Money List</div>
+<div class="login-box">
+<input class="login-input" id="pwdInput" type="password" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()">
+<button class="login-btn" onclick="checkPassword()">Enter</button>
+<div class="login-error" id="loginError"></div>
+</div>
+</div>
 <!-- LOADING -->
-<div id="loading">
+<div id="loading" class="hidden">
 <div class="loading-logo">⚓</div>
 <div class="loading-title">Excel Shipbrokers Money List</div>
 <div class="spinner"></div>
@@ -219,6 +244,30 @@ Back
 </div>
 <div class="toast" id="toast"></div>
 <script>
+// ── PASSWORD GATE ──
+const APP_PASSWORD = 'excel2025'; // ← change this to your desired password
+function checkPassword() {
+  const input = document.getElementById('pwdInput');
+  if (input.value === APP_PASSWORD) {
+    sessionStorage.setItem('ml_auth', '1');
+    document.getElementById('loginScreen').classList.add('hidden');
+    fetchData();
+  } else {
+    document.getElementById('loginError').textContent = 'Incorrect password';
+    input.classList.remove('shake');
+    void input.offsetWidth; // reflow to restart animation
+    input.classList.add('shake');
+    input.value = '';
+    setTimeout(() => document.getElementById('loginError').textContent = '', 2000);
+  }
+}
+// Check if already authenticated this session
+if (sessionStorage.getItem('ml_auth') === '1') {
+  document.getElementById('loginScreen').classList.add('hidden');
+} else {
+  // Block fetchData until authenticated — override it temporarily
+  window._fetchDataBlocked = true;
+}
 // ── CONFIG ── only line you ever need to change
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
 const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
@@ -674,7 +723,7 @@ ${total===0?`<div class="no-match">No cargo orders match this vessel's DWT</div>
 }
 function goBack(){document.getElementById('detail').classList.remove('show');document.getElementById('app').style.display='flex';}
 // ── START ──
-fetchData();
+if (sessionStorage.getItem('ml_auth') === '1') fetchData();
 if('serviceWorker' in navigator){
 window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js'));
 }
