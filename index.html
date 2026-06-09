@@ -105,6 +105,17 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .voy-badge{background:var(--teal-dim);color:var(--teal);}
 .cargo-details{font-size:12px;color:var(--text2);margin-top:4px;}
 .cargo-route{font-size:11px;color:var(--text3);margin-top:3px;display:flex;align-items:center;gap:4px;}
+.cargo-cargo-box{display:flex;align-items:center;gap:8px;margin-top:7px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;}
+.cargo-cargo-label{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;flex-shrink:0;font-family:var(--mono);}
+.cargo-cargo-text{font-size:12px;color:var(--text);font-weight:500;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cargo-size-pill{font-size:10px;font-family:var(--mono);background:var(--accent-dim);color:var(--accent);padding:2px 8px;border-radius:10px;flex-shrink:0;white-space:nowrap;}
+.cargo-route-box{display:flex;align-items:center;gap:6px;margin-top:6px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;}
+.route-point{display:flex;align-items:center;gap:6px;flex:1;min-width:0;}
+.route-tag{font-size:9px;font-weight:700;font-family:var(--mono);padding:2px 6px;border-radius:4px;flex-shrink:0;}
+.route-tag-a{background:var(--green-dim);color:var(--green);}
+.route-tag-b{background:var(--coral-dim);color:var(--coral);}
+.route-port-name{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.route-sep{color:var(--text3);font-size:13px;flex-shrink:0;}
 .cargo-pills{display:flex;gap:5px;margin-top:7px;flex-wrap:wrap;}
 .cpill{font-size:10px;padding:2px 7px;border-radius:10px;background:var(--bg4);color:var(--text3);font-family:var(--mono);}
 #detail{display:none;flex-direction:column;height:100dvh;height:100vh;}
@@ -705,11 +716,20 @@ if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty
 for (const o of filtered){
 const el=document.createElement('div'); el.className='cargo-row';
 const isTCT=type==='TCT';
-const route=isTCT?`${o.delivery||'—'} → ${o.redelivery||'—'}`:`${o.loadPort||'—'} → ${o.dischargePort||'—'}`;
+const portA=isTCT?(o.delivery||'—'):(o.loadPort||'—');
+const portB=isTCT?(o.redelivery||'—'):(o.dischargePort||'—');
 el.innerHTML=`<div class="cargo-top"><div class="cargo-account">${o.account}</div>
 <span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
-<div class="cargo-details"><span class="field-label">Cargo</span>${o.cargo||'—'} &nbsp;<span class="field-label">Size</span>${o.tonnage||'—'}</div>
-<div class="cargo-route"><span class="field-label">Route</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${route}</div>
+<div class="cargo-cargo-box">
+  <span class="cargo-cargo-label">Cargo</span>
+  <span class="cargo-cargo-text">${o.cargo||'—'}</span>
+  <span class="cargo-size-pill">${o.tonnage||'—'}</span>
+</div>
+<div class="cargo-route-box">
+  <div class="route-point"><span class="route-tag route-tag-a">A</span><span class="route-port-name">${portA}</span></div>
+  <span class="route-sep">→</span>
+  <div class="route-point"><span class="route-tag route-tag-b">B</span><span class="route-port-name">${portB}</span></div>
+</div>
 <div class="cargo-pills"><span class="cpill">${o.laycan||'—'}</span><span class="cpill" style="opacity:0.5">${o.region||'NO REGION'}</span></div>`;
 el.style.cursor="pointer"; el.addEventListener("click",()=>showCargoDetail(o,type)); wrap.appendChild(el);
 }
