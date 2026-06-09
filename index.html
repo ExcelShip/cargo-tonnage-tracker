@@ -746,12 +746,23 @@ const matchHTML=(orders,type)=>{
 if (!orders.length) return '';
 const isTCT=type==='TCT';
 return orders.map(o=>{
-const route=isTCT?`${o.delivery||'—'} → ${o.redelivery||'—'}`:`${o.loadPort||'—'} → ${o.dischargePort||'—'}`;
-return `<div class="match-card"><div class="match-top"><div class="match-account">${o.account}</div>
+const portA=isTCT?(o.delivery||'—'):(o.loadPort||'—');
+const portB=isTCT?(o.redelivery||'—'):(o.dischargePort||'—');
+return `<div class="match-card">
+<div class="match-top"><div class="match-account">${o.account}</div>
 <span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
-<div class="match-cargo"><span class="field-label">Cargo</span>${o.cargo||'—'}&nbsp;&nbsp;<span class="field-label">Size</span>${o.tonnage||'—'}</div>
-<div class="match-route"><span class="field-label">Route</span><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>${route}</div>
-<div class="match-pills"><span class="cpill">${o.laycan||'—'}</span></div></div>`;
+<div class="cargo-cargo-box" style="margin-top:8px;">
+  <span class="cargo-cargo-label">Cargo</span>
+  <span class="cargo-cargo-text">${o.cargo||'—'}</span>
+  <span class="cargo-size-pill">${o.tonnage||'—'}</span>
+</div>
+<div class="cargo-route-box">
+  <div class="route-point"><span class="route-tag route-tag-a">A</span><span class="route-port-name">${portA}</span></div>
+  <span class="route-sep">→</span>
+  <div class="route-point"><span class="route-tag route-tag-b">B</span><span class="route-port-name">${portB}</span></div>
+</div>
+<div class="match-pills"><span class="cpill">${o.laycan||'—'}</span></div>
+</div>`;
 }).join('');
 };
 const total=matchedTCT.length+matchedVOY.length;
@@ -790,9 +801,17 @@ return `<div class="match-card">
 <div class="match-account">${v.vesselName}</div>
 <div class="dwt-badge ${info.cls}" style="width:auto;padding:0 8px;height:28px;font-size:11px;">${info.label}<span style="font-size:9px;margin-left:3px;">${info.size}</span></div>
 </div>
-<div class="match-cargo"><span class="field-label">Owner</span>${v.owner||'—'}&nbsp;&nbsp;<span class="field-label">Built</span>${v.blt||'—'}</div>
-<div class="match-route"><span class="field-label">Open</span>${v.open||'—'} · ${v.bssPort||'—'}</div>
-${statusLabel?`<div class="match-pills"><span class="status-pill ${statusCls}" style="margin-top:6px;">${statusLabel}</span></div>`:''}
+<div class="cargo-cargo-box" style="margin-top:8px;">
+  <span class="cargo-cargo-label">Owner</span>
+  <span class="cargo-cargo-text">${v.owner||'—'}</span>
+  ${v.blt?`<span class="cargo-size-pill">${v.blt}</span>`:''}
+</div>
+<div class="cargo-route-box">
+  <div class="route-point"><span class="route-tag route-tag-a" style="background:var(--accent-dim);color:var(--accent);">PORT</span><span class="route-port-name">${v.bssPort||'—'}</span></div>
+  <span class="route-sep">·</span>
+  <div class="route-point"><span class="route-tag route-tag-b" style="background:var(--purple-dim);color:var(--purple);">OPEN</span><span class="route-port-name">${v.open||'—'}</span></div>
+</div>
+${statusLabel?`<div class="match-pills"><span class="status-pill ${statusCls}" style="margin-top:2px;">${statusLabel}</span></div>`:''}
 </div>`;
 }).join('');
 document.getElementById('detailScroll').innerHTML=`
