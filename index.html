@@ -138,6 +138,12 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0;}
 .toast{position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);left:50%;transform:translateX(-50%) translateY(80px);background:var(--bg3);border:1px solid var(--border2);border-radius:20px;padding:10px 18px;font-size:13px;color:var(--text);z-index:999;transition:transform 0.3s;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
+.sort-bar{display:flex;align-items:center;gap:6px;padding:7px 12px;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;scrollbar-width:none;}
+.sort-bar::-webkit-scrollbar{display:none;}
+.sort-label{font-size:10px;color:var(--text3);flex-shrink:0;text-transform:uppercase;letter-spacing:0.05em;}
+.sort-btn{font-size:11px;padding:4px 10px;border-radius:16px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;white-space:nowrap;font-family:var(--font);transition:all 0.15s;flex-shrink:0;}
+.sort-btn.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);}
+.sort-divider{width:1px;height:14px;background:var(--border2);flex-shrink:0;margin:0 2px;}
 .region-divider{padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--border2);font-size:13px;font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.12em;display:flex;align-items:center;gap:8px;}
 .region-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .safe-bottom{height:env(safe-area-inset-bottom,0px);background:var(--bg2);flex-shrink:0;}
@@ -218,6 +224,7 @@ Refresh
 <button class="tab" id="tab-tct" onclick="setTab('tct')">Cargo TCT <span class="tab-count" id="cnt-tct">0</span></button>
 <button class="tab" id="tab-voy" onclick="setTab('voy')">Cargo VOY <span class="tab-count" id="cnt-voy">0</span></button>
 </div>
+<div class="sort-bar" id="sortBar"></div>
 <div class="legend" id="dwtLegend">
 <div class="legend-item"><div class="legend-dot" style="background:#10b981;"></div>&lt;30k HS</div>
 <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div>30–44k HM</div>
@@ -245,7 +252,7 @@ Back
 <div class="toast" id="toast"></div>
 <script>
 // ── PASSWORD GATE ──
-const APP_PASSWORD = '3xcelsh!p3025'; // ← change this to your desired password
+const APP_PASSWORD = 'excel2025'; // ← change this to your desired password
 function checkPassword() {
   const input = document.getElementById('pwdInput');
   if (input.value === APP_PASSWORD) {
@@ -274,6 +281,22 @@ const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
 let activeTab='tonnage', activeRegion='all', searchQuery='';
+let sortField='default', sortDir='asc', dwtFilter='all';
+function buildSortBar(){
+  const bar=document.getElementById('sortBar');
+  const s=(f,label)=>`<button class="sort-btn${sortField===f?' active':''}" onclick="setSort('${f}')">${label}${sortField===f&&f!=='default'?' '+(sortDir==='asc'?'↑':'↓'):''}</button>`;
+  if(activeTab==='tonnage'){
+    bar.innerHTML=`<span class="sort-label">Sort</span>${s('default','Default')}${s('dwt','DWT')}${s('open','Open Date')}${s('name','Name')}<div class="sort-divider"></div><span class="sort-label">DWT</span>${['all','hs','hm','sm','pm','cp'].map(c=>`<button class="sort-btn${dwtFilter===c?' active':''}" onclick="setDwtFilter('${c}')">${c==='all'?'All':c.toUpperCase()}</button>`).join('')}`;
+  } else {
+    bar.innerHTML=`<span class="sort-label">Sort</span>${s('default','Default')}${s('laycan','Laycan')}${s('tonnage','Tonnage')}${s('account','Account')}`;
+  }
+}
+function setSort(f){
+  if(sortField===f&&f!=='default')sortDir=sortDir==='asc'?'desc':'asc';
+  else{sortField=f;sortDir='asc';}
+  buildSortBar();renderList();
+}
+function setDwtFilter(c){dwtFilter=c;buildSortBar();renderList();}
 // ── GOOGLE SHEETS CSV FETCH ──
 function sheetURL(gid) {
 return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
@@ -575,6 +598,7 @@ const now = new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digi
 document.getElementById('topMeta').textContent = 'Updated ' + now;
 updateStats();
 buildFilters();
+buildSortBar();
 renderList();
 showToast('Loaded · ' + vessels.length + ' vessels · ' + (tct.length+voy.length) + ' cargo orders');
 }
@@ -614,7 +638,7 @@ document.getElementById('filterRow').innerHTML=unique.map(r=>
 ).join('');
 }
 function setRegion(r,el){activeRegion=r;document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderList();}
-function setTab(t){activeTab=t;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.getElementById('dwtLegend').style.display=t==='tonnage'?'flex':'none';renderList();}
+function setTab(t){activeTab=t;sortField='default';sortDir='asc';document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.getElementById('dwtLegend').style.display=t==='tonnage'?'flex':'none';buildSortBar();renderList();}
 function onSearch(){searchQuery=document.getElementById('searchInput').value.toLowerCase();document.getElementById('clearBtn').classList.toggle('show',searchQuery.length>0);renderList();}
 function clearSearch(){searchQuery='';document.getElementById('searchInput').value='';document.getElementById('clearBtn').classList.remove('show');renderList();}
 // ── RENDER ──
@@ -625,17 +649,22 @@ else if (activeTab==='tct') renderCargo(wrap,tct,'TCT');
 else renderCargo(wrap,voy,'VOY');
 }
 function renderTonnage(wrap){
-const filtered=vessels.filter(v=>{
+let filtered=vessels.filter(v=>{
 const rMatch=activeRegion==='all'||v.region===activeRegion;
+const dMatch=dwtFilter==='all'||dwtInfo(v.dwt).cls===dwtFilter;
 const qMatch=!searchQuery||v.vesselName.toLowerCase().includes(searchQuery)||
 (v.bssPort||'').toLowerCase().includes(searchQuery)||
 (v.owner||'').toLowerCase().includes(searchQuery)||
 (v.region||'').toLowerCase().includes(searchQuery);
-return rMatch&&qMatch;
+return rMatch&&dMatch&&qMatch;
 });
+if(sortField==='dwt')filtered.sort((a,b)=>sortDir==='asc'?(a.dwt||0)-(b.dwt||0):(b.dwt||0)-(a.dwt||0));
+else if(sortField==='name')filtered.sort((a,b)=>sortDir==='asc'?a.vesselName.localeCompare(b.vesselName):b.vesselName.localeCompare(a.vesselName));
+else if(sortField==='open')filtered.sort((a,b)=>sortDir==='asc'?(a.open||'').localeCompare(b.open||''):(b.open||'').localeCompare(a.open||''));
 document.getElementById('cnt-tonnage').textContent=filtered.length;
 if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div>No vessels match</div>`;return;}
-if (activeRegion==='all'&&!searchQuery){
+const isSorted=sortField!=='default';
+if (activeRegion==='all'&&!searchQuery&&!isSorted&&dwtFilter==='all'){
 const groups={};
 for (const v of filtered){const r=v.region||'Other';if(!groups[r])groups[r]=[];groups[r].push(v);}
 const order=[...REGIONS_ORDER,...Object.keys(groups).filter(r=>!REGIONS_ORDER.includes(r))];
@@ -659,7 +688,7 @@ el.addEventListener('click',()=>showDetail(v)); return el;
 }
 function renderCargo(wrap,orders,type){
 const countId=type==='TCT'?'cnt-tct':'cnt-voy';
-const filtered=orders.filter(o=>{
+let filtered=orders.filter(o=>{
 if(activeRegion!=='all'&&normalizeRegion(o.region)!==normalizeRegion(activeRegion))return false;
 if(!searchQuery)return true;
 return(o.account||'').toLowerCase().includes(searchQuery)||
@@ -668,6 +697,9 @@ return(o.account||'').toLowerCase().includes(searchQuery)||
 (o.redelivery||o.dischargePort||'').toLowerCase().includes(searchQuery)||
 (o.laycan||'').toLowerCase().includes(searchQuery);
 });
+if(sortField==='laycan')filtered.sort((a,b)=>sortDir==='asc'?(a.laycan||'').localeCompare(b.laycan||''):(b.laycan||'').localeCompare(a.laycan||''));
+else if(sortField==='tonnage')filtered.sort((a,b)=>sortDir==='asc'?(a.tonnage||'').localeCompare(b.tonnage||''):(b.tonnage||'').localeCompare(a.tonnage||''));
+else if(sortField==='account')filtered.sort((a,b)=>sortDir==='asc'?(a.account||'').localeCompare(b.account||''):(b.account||'').localeCompare(a.account||''));
 document.getElementById(countId).textContent=filtered.length;
 if (!filtered.length){wrap.innerHTML=`<div class="empty-state"><div class="empty-icon">📦</div>No ${type} orders match</div>`;return;}
 for (const o of filtered){
