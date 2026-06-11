@@ -289,7 +289,7 @@ if (sessionStorage.getItem('ml_auth') === '1') {
 // ── CONFIG ── only line you ever need to change
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
 const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
-const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
+const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','SCHINA','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
 let activeTab='tonnage', activeRegion='all', searchQuery='';
 let sortField='default', sortDir='asc', dwtFilter='all';
@@ -489,6 +489,11 @@ s.includes('CHITTAGONG')||s.includes('MONGLA')||s.includes('ENNORE')||
 s.includes('TUTICORIN')||s.includes('HALDIA')||s.includes('VIZAG')||
 s.includes('KAKINADA')||s.includes('KARAIKAL')||s.includes('KOLKATA')||
 s.includes('PARADIP')||s.includes('GANGAVARAM')) return 'ECI';
+if (s.includes('S CHINA')||s.includes('SCHINA')||s.includes('SOUTH CHINA')||
+s.includes('GUANGZHOU')||s.includes('HUANGPU')||s.includes('NANSHA')||
+s.includes('ZHANJIANG')||s.includes('CHIWAN')||s.includes('SHEKOU')||
+s.includes('SHENZHEN')||s.includes('XIAMEN')||s.includes('FUZHOU')||
+s.includes('SHANTOU')||s.includes('GUANGDONG')) return 'SCHINA';
 if (s.includes('F EAST')||s.includes('FEAST')||s.includes('JAPAN')||s.includes('KOREA')||
 s.includes('CHINA')||s.includes('CJK')||s.includes('PACIFIC')||
 s.includes('ZHOUSHAN')||s.includes('DALIAN')||s.includes('YANGPU')||s.includes('TIANJIN')||
@@ -642,7 +647,7 @@ const ordered=['all',...REGIONS_ORDER.filter(r=>regions.includes(r)),
 ...regions.filter(r=>r!=='all'&&!REGIONS_ORDER.includes(r))];
 const unique=[...new Set(ordered)];
 const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI',
-'CHINA':'China','VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo',
+'SCHINA':'S.China','CHINA':'China','VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo',
 'MED':'Med','AFRICA':'Africa','ATLANTIC':'Atlantic'};
 document.getElementById('filterRow').innerHTML=unique.map(r=>
 `<button class="fpill${r===activeRegion?' active':''}" onclick="setRegion('${r}',this)">${labels[r]||r}</button>`
