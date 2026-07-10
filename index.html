@@ -147,6 +147,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 #hotView{display:none;flex-direction:column;height:100dvh;height:100vh;background:var(--bg);}
 #hotView.show{display:flex;}
 .hot-topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;display:flex;align-items:center;gap:14px;padding:14px 20px;}
+/* Trading-floor ticker */
+.ticker-bar{background:#0d0f12;border-bottom:1px solid var(--border);overflow:hidden;white-space:nowrap;flex-shrink:0;padding:9px 0;position:relative;}
+.ticker-track{display:inline-block;white-space:nowrap;padding-left:100%;animation:ticker-scroll 40s linear infinite;}
+.ticker-bar:hover .ticker-track{animation-play-state:paused;}
+@keyframes ticker-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+.tick-item{display:inline-flex;align-items:baseline;gap:8px;padding:0 6px;font-family:var(--mono);}
+.tick-name{font-size:13px;color:#8a909e;text-transform:uppercase;letter-spacing:0.04em;}
+.tick-val{font-size:15px;font-weight:600;color:#e8eaf0;}
+.tick-chg{font-size:13px;font-weight:600;}
+.tick-up{color:#10b981;}
+.tick-down{color:#ef4444;}
+.tick-flat{color:#8a909e;}
+.tick-sep{color:#3b3f48;padding:0 14px;font-size:13px;}
 .hot-title{font-size:19px;font-weight:600;flex:1;display:flex;align-items:center;gap:8px;}
 .hot-updated{font-size:13px;color:var(--text3);font-family:var(--mono);}
 .hot-scroll{flex:1;overflow-y:auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:18px;align-content:start;}
@@ -312,6 +325,7 @@ Back
 <div class="hot-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--amber);"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg> Hot List — Today's Vessels</div>
 <div class="hot-updated" id="hotUpdated"></div>
 </div>
+<div class="ticker-bar" id="tickerBar" style="display:none;"><div class="ticker-track" id="tickerTrack"></div></div>
 <div class="hot-scroll" id="hotScroll"></div>
 </div>
 <div class="toast" id="toast"></div>
@@ -343,8 +357,30 @@ if (sessionStorage.getItem('ml_auth') === '1') {
 // ── CONFIG ── only line you ever need to change
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
 const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
+// ← After creating a BALTIC tab in the sheet, paste its gid here (from the tab's URL: ...#gid=XXXXX)
+const BALTIC_GID = '';  // e.g. '123456789' — leave '' to hide the ticker
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','SCHINA','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
+let baltic=[];
+// Parse BALTIC tab. Expected columns: A=Index name, B=Value, C=Change (optional, e.g. "+12" or "-4")
+function parseBaltic(rows){
+const out=[];
+for(const row of rows){
+const name=String(row[0]||'').trim();
+if(!name) continue;
+const low=name.toLowerCase();
+if(low==='index'||low==='name'||low.includes('baltic index')) continue; // header
+const val=String(row[1]||'').trim();
+if(!val) continue;
+out.push({name, value:val, change:String(row[2]||'').trim()});
+}
+return out;
+}
+async function fetchBaltic(){
+if(!BALTIC_GID) return [];
+try { return parseBaltic(await fetchSheet(BALTIC_GID)); }
+catch(e){ return []; }
+}
 let activeTab='tonnage', activeRegion='all', searchQuery='';
 // ── HOT LIST (device-local favorites) ──
 let hotSet = loadHot();
@@ -368,18 +404,40 @@ function updateHotCount(){
 const el=document.getElementById('hotCount');
 if(el) el.textContent = hotSet.size ? hotSet.size : '';
 }
+function renderTicker(){
+const bar=document.getElementById('tickerBar');
+const track=document.getElementById('tickerTrack');
+if(!bar||!track) return;
+if(!baltic.length){ bar.style.display='none'; return; }
+bar.style.display='block';
+const item=b=>{
+let cls='tick-flat', arrow='';
+const ch=b.change.replace(/[^0-9.+-]/g,'');
+const n=parseFloat(ch);
+if(!isNaN(n)&&n>0){cls='tick-up';arrow='▲';}
+else if(!isNaN(n)&&n<0){cls='tick-down';arrow='▼';}
+const changeHTML=b.change?`<span class="tick-chg ${cls}">${arrow} ${b.change.replace(/^[+-]?/,m=>m)}</span>`:'';
+return `<span class="tick-item"><span class="tick-name">${b.name}</span><span class="tick-val">${b.value}</span>${changeHTML}</span>`;
+};
+// duplicate the sequence so the scroll loops seamlessly
+const seq=baltic.map(item).join('<span class="tick-sep">•</span>');
+track.innerHTML=seq+'<span class="tick-sep">•</span>'+seq+'<span class="tick-sep">•</span>';
+}
 function openHotList(){
 document.getElementById('app').style.display='none';
 document.getElementById('detail').classList.remove('show');
 document.getElementById('hotView').classList.add('show');
 renderHotList();
+renderTicker();
 // auto-refresh every 3 minutes while the hot view is open
 if(hotRefreshTimer) clearInterval(hotRefreshTimer);
 hotRefreshTimer=setInterval(async()=>{
 try{
 const [tn,tc,vy]=await Promise.all([fetchSheet(GIDS.tonnage),fetchSheet(GIDS.tct),fetchSheet(GIDS.voy)]);
 vessels=parseTonnage(tn); tct=parseTCT(tc); voy=parseVOY(vy);
+baltic=await fetchBaltic();
 renderHotList();
+renderTicker();
 }catch(e){/* keep showing last good data */}
 }, 180000);
 }
@@ -500,6 +558,7 @@ fetchSheet(GIDS.tonnage), fetchSheet(GIDS.tct), fetchSheet(GIDS.voy)
 vessels = parseTonnage(tonnageRows);
 tct = parseTCT(tctRows);
 voy = parseVOY(voyRows);
+baltic = await fetchBaltic();
 launchApp();
 } catch(err) {
 document.getElementById('loading').classList.add('hidden');
@@ -515,6 +574,7 @@ const [tonnageRows, tctRows, voyRows] = await Promise.all([
 fetchSheet(GIDS.tonnage), fetchSheet(GIDS.tct), fetchSheet(GIDS.voy)
 ]);
 vessels = parseTonnage(tonnageRows); tct = parseTCT(tctRows); voy = parseVOY(voyRows);
+baltic = await fetchBaltic();
 updateStats();
 buildFilters();
 renderList();
