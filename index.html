@@ -148,10 +148,13 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 #hotView.show{display:flex;}
 .hot-topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;display:flex;align-items:center;gap:14px;padding:14px 20px;}
 /* Trading-floor ticker */
-.ticker-bar{background:#0d0f12;border-bottom:1px solid var(--border);overflow:hidden;white-space:nowrap;flex-shrink:0;padding:9px 0;position:relative;}
-.ticker-track{display:inline-block;white-space:nowrap;padding-left:100%;animation:ticker-scroll 40s linear infinite;}
+.ticker-bar{background:linear-gradient(180deg,#12151b,#0a0c0f);border-top:1px solid rgba(255,255,255,0.06);border-bottom:1px solid rgba(255,255,255,0.06);overflow:hidden;white-space:nowrap;flex-shrink:0;padding:10px 0;position:relative;}
+.ticker-bar::before,.ticker-bar::after{content:'';position:absolute;top:0;bottom:0;width:60px;z-index:2;pointer-events:none;}
+.ticker-bar::before{left:0;background:linear-gradient(90deg,#0a0c0f,transparent);}
+.ticker-bar::after{right:0;background:linear-gradient(270deg,#0a0c0f,transparent);}
+.ticker-track{display:inline-flex;align-items:center;white-space:nowrap;animation:ticker-scroll 60s linear infinite;will-change:transform;}
 .ticker-bar:hover .ticker-track{animation-play-state:paused;}
-@keyframes ticker-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+@keyframes ticker-scroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
 .tick-item{display:inline-flex;align-items:baseline;gap:8px;padding:0 6px;font-family:var(--mono);}
 .tick-name{font-size:13px;color:#8a909e;text-transform:uppercase;letter-spacing:0.04em;}
 .tick-val{font-size:15px;font-weight:600;color:#e8eaf0;}
@@ -159,7 +162,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .tick-up{color:#10b981;}
 .tick-down{color:#ef4444;}
 .tick-flat{color:#8a909e;}
-.tick-sep{color:#3b3f48;padding:0 14px;font-size:13px;}
+.tick-sep{color:#3b3f48;padding:0 20px;font-size:11px;}
 .hot-title{font-size:19px;font-weight:600;flex:1;display:flex;align-items:center;gap:8px;}
 .hot-updated{font-size:13px;color:var(--text3);font-family:var(--mono);}
 .hot-scroll{flex:1;overflow-y:auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:18px;align-content:start;}
@@ -358,7 +361,7 @@ if (sessionStorage.getItem('ml_auth') === '1') {
 const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
 const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
 // ← After creating a BALTIC tab in the sheet, paste its gid here (from the tab's URL: ...#gid=XXXXX)
-const BALTIC_GID = '517926540';  // e.g. '123456789' — leave '' to hide the ticker
+const BALTIC_GID = '';  // e.g. '123456789' — leave '' to hide the ticker
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','SCHINA','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
 let baltic=[];
@@ -412,16 +415,21 @@ if(!baltic.length){ bar.style.display='none'; return; }
 bar.style.display='block';
 const item=b=>{
 let cls='tick-flat', arrow='';
-const ch=b.change.replace(/[^0-9.+-]/g,'');
+const ch=(b.change||'').replace(/[^0-9.+-]/g,'');
 const n=parseFloat(ch);
 if(!isNaN(n)&&n>0){cls='tick-up';arrow='▲';}
 else if(!isNaN(n)&&n<0){cls='tick-down';arrow='▼';}
-const changeHTML=b.change?`<span class="tick-chg ${cls}">${arrow} ${b.change.replace(/^[+-]?/,m=>m)}</span>`:'';
+const changeHTML=b.change?`<span class="tick-chg ${cls}">${arrow} ${b.change}</span>`:'';
 return `<span class="tick-item"><span class="tick-name">${b.name}</span><span class="tick-val">${b.value}</span>${changeHTML}</span>`;
 };
-// duplicate the sequence so the scroll loops seamlessly
-const seq=baltic.map(item).join('<span class="tick-sep">•</span>');
-track.innerHTML=seq+'<span class="tick-sep">•</span>'+seq+'<span class="tick-sep">•</span>';
+// One complete sequence ending with a separator, so halves join cleanly.
+const sep='<span class="tick-sep">◆</span>';
+const half=baltic.map(item).join(sep)+sep;
+// Two identical halves — animation scrolls exactly one half-width for a seamless loop.
+track.innerHTML=half+half;
+// Scale speed to content length so long lists don't scroll too fast.
+const secs=Math.max(30, baltic.length*7);
+track.style.animationDuration=secs+'s';
 }
 function openHotList(){
 document.getElementById('app').style.display='none';
