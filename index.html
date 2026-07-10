@@ -362,6 +362,9 @@ const SHEET_ID = '16OVoXLebQY9g17gmeDDcFvn26my5WwEM_ds-WnOC1fg';
 const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
 // ← After creating a BALTIC tab in the sheet, paste its gid here (from the tab's URL: ...#gid=XXXXX)
 const BALTIC_GID = '517926540';  // BALTIC tab gid
+// ← After deploying the Apps Script web app, paste its URL here to enable shared in-app starring.
+// Leave '' to fall back to device-local stars only.
+const HOT_WRITE_URL = 'https://script.google.com/macros/s/AKfycbx3feV0iQxHlagult-8j0EYI8cJA4b3y3FCPzeB68_qcA88vq3f2ScFLmxxObAqWJGf/exec';  // e.g. 'https://script.google.com/macros/s/AKfy..../exec'
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','SCHINA','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
 let baltic=[];
@@ -395,17 +398,36 @@ catch(e){ return new Set(); }
 function saveHot(){
 try { localStorage.setItem('ml_hot', JSON.stringify([...hotSet])); } catch(e){}
 }
-function isHot(v){ return hotSet.has(v.vesselName); }
+function isHot(v){ return !!v.sheetHot || hotSet.has(v.vesselName); }
 function toggleHot(name, ev){
 if(ev){ ev.stopPropagation(); }
+const vessel = vessels.find(v=>v.vesselName===name);
+// Determine desired new state based on current combined status
+const currentlyHot = vessel ? isHot(vessel) : hotSet.has(name);
+const makeHot = !currentlyHot;
+if(HOT_WRITE_URL){
+// Shared mode: optimistically update the sheet-backed flag locally, then persist to the sheet.
+if(vessel) vessel.sheetHot = makeHot;
+// keep local set in sync too so it survives until next data refresh
+if(makeHot) hotSet.add(name); else hotSet.delete(name);
+saveHot();
+updateHotCount(); renderList();
+// fire-and-forget write to the shared sheet
+const url = HOT_WRITE_URL + '?action=' + (makeHot?'set':'clear') + '&vessel=' + encodeURIComponent(name);
+fetch(url, {method:'GET', mode:'no-cors'}).catch(()=>{
+showToast('Could not sync star to sheet — saved on this device');
+});
+} else {
+// Local-only fallback
 if(hotSet.has(name)) hotSet.delete(name); else hotSet.add(name);
 saveHot();
-updateHotCount();
-renderList();
+updateHotCount(); renderList();
+}
 }
 function updateHotCount(){
 const el=document.getElementById('hotCount');
-if(el) el.textContent = hotSet.size ? hotSet.size : '';
+const total = vessels.filter(v=>isHot(v)).length;
+if(el) el.textContent = total ? total : '';
 }
 function renderTicker(){
 const bar=document.getElementById('tickerBar');
@@ -456,7 +478,7 @@ if(hotRefreshTimer){ clearInterval(hotRefreshTimer); hotRefreshTimer=null; }
 }
 function renderHotList(){
 const wrap=document.getElementById('hotScroll');
-const hotVessels=vessels.filter(v=>hotSet.has(v.vesselName));
+const hotVessels=vessels.filter(v=>isHot(v));
 const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 document.getElementById('hotUpdated').textContent='Updated '+now+' · '+hotVessels.length+' vessel'+(hotVessels.length===1?'':'s');
 if(!hotVessels.length){
@@ -622,6 +644,7 @@ region:region||String(row[4]||'').trim(),
 open:String(row[5]||'').trim(),
 owner:String(row[6]||'').trim(),
 comments:String(row[7]||'').trim(),
+sheetHot:(function(){const h=String(row[8]||'').trim().toLowerCase();return h==='x'||h==='hot'||h==='1'||h==='yes'||h==='y'||h==='true';})(),
 notes:String(row[9]||'').trim(),
 });
 } else if (!f.startsWith('Daily')&&!f.includes('Vessel')&&!f.includes('DWT')&&!row.slice(1,5).some(x=>x!=null&&String(x).trim()!=='')) {
