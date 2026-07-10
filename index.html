@@ -138,6 +138,40 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .detail-notes-text{font-size:13px;color:var(--text);white-space:pre-wrap;}
 .note-flag{color:var(--accent);vertical-align:middle;margin-left:3px;opacity:0.85;}
 .match-note{background:var(--accent-dim);border-left:2px solid var(--accent);border-radius:4px;padding:7px 10px;margin-top:8px;font-size:12px;color:var(--text);white-space:pre-wrap;line-height:1.45;}
+/* Star buttons */
+.star-btn{background:none;border:none;cursor:pointer;font-size:22px;line-height:1;color:var(--text3);padding:4px 6px;flex-shrink:0;transition:transform 0.1s,color 0.15s;align-self:center;}
+.star-btn:hover{transform:scale(1.15);}
+.star-btn.starred{color:var(--amber);}
+.star-detail{font-size:24px;vertical-align:middle;}
+/* Hot List view */
+#hotView{display:none;flex-direction:column;height:100dvh;height:100vh;background:var(--bg);}
+#hotView.show{display:flex;}
+.hot-topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:env(safe-area-inset-top,0) 0 0;flex-shrink:0;display:flex;align-items:center;gap:14px;padding:14px 20px;}
+.hot-title{font-size:19px;font-weight:600;flex:1;display:flex;align-items:center;gap:8px;}
+.hot-updated{font-size:13px;color:var(--text3);font-family:var(--mono);}
+.hot-scroll{flex:1;overflow-y:auto;padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:18px;align-content:start;}
+.hot-empty{grid-column:1/-1;text-align:center;padding:5rem 1rem;color:var(--text2);font-size:20px;}
+.hot-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 1px 3px rgba(0,0,0,0.04);}
+.hot-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.hot-vessel-name{font-size:22px;font-weight:700;color:var(--text);line-height:1.2;}
+.hot-vessel-sub{font-size:14px;color:var(--text2);margin-top:4px;}
+.hot-specs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.hot-spec{background:var(--bg3);border-radius:8px;padding:9px 11px;}
+.hot-spec-l{display:block;font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);margin-bottom:3px;}
+.hot-spec-v{display:block;font-size:15px;font-weight:600;font-family:var(--mono);color:var(--text);}
+.hot-note{background:var(--accent-dim);border:1px solid var(--accent);border-radius:8px;padding:11px 13px;margin-bottom:14px;font-size:15px;color:var(--text);line-height:1.5;white-space:pre-wrap;}
+.hot-note-lbl{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:0.05em;}
+.hot-cargo-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text3);margin-bottom:10px;padding-top:6px;border-top:1px solid var(--border);}
+.hot-cargo-grid{display:flex;flex-direction:column;gap:10px;}
+.hot-cargo{background:var(--bg3);border-radius:8px;padding:12px 14px;}
+.hot-cargo-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.hot-cargo-acct{font-size:15px;font-weight:600;color:var(--text);}
+.hot-cargo-row{display:flex;align-items:baseline;gap:8px;font-size:14px;margin-top:4px;}
+.hot-lbl{font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text3);font-family:var(--mono);min-width:48px;flex-shrink:0;}
+.hot-val{color:var(--text);font-weight:500;}
+.hot-size{margin-left:auto;font-size:12px;font-family:var(--mono);background:var(--bg4);padding:2px 8px;border-radius:10px;color:var(--text2);}
+.hot-nocargo{font-size:14px;color:var(--text3);font-style:italic;padding:8px 0;}
+@media(max-width:600px){.hot-scroll{grid-template-columns:1fr;padding:14px;}.hot-specs{grid-template-columns:repeat(2,1fr);}}
 .section-header{font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.07em;margin:16px 0 8px;display:flex;align-items:center;gap:8px;}
 .section-header::after{content:'';flex:1;height:1px;background:var(--border);}
 .match-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;}
@@ -214,6 +248,10 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 <div class="topbar-title">Excel Shipbrokers Money List</div>
 <div class="topbar-sub" id="topMeta"></div>
 </div>
+<button class="refresh-btn" id="hotBtn" onclick="openHotList()" style="margin-right:6px;">
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg>
+Hot <span id="hotCount" style="font-family:var(--mono);"></span>
+</button>
 <button class="refresh-btn" id="refreshBtn" onclick="refreshData()">
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
 Refresh
@@ -265,6 +303,17 @@ Back
 <div class="detail-scroll" id="detailScroll"></div>
 <div class="safe-bottom"></div>
 </div>
+<div id="hotView">
+<div class="hot-topbar">
+<button class="back-btn" onclick="closeHotList()">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+Back
+</button>
+<div class="hot-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="color:var(--amber);"><path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21 8 14 2 9.4h7.6z"/></svg> Hot List — Today's Vessels</div>
+<div class="hot-updated" id="hotUpdated"></div>
+</div>
+<div class="hot-scroll" id="hotScroll"></div>
+</div>
 <div class="toast" id="toast"></div>
 <script>
 // ── PASSWORD GATE ──
@@ -297,6 +346,94 @@ const GIDS = { tonnage: '1517312983', tct: '2057226181', voy: '1362162677' };
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','SCHINA','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
 let vessels=[], tct=[], voy=[];
 let activeTab='tonnage', activeRegion='all', searchQuery='';
+// ── HOT LIST (device-local favorites) ──
+let hotSet = loadHot();
+let hotRefreshTimer = null;
+function loadHot(){
+try { return new Set(JSON.parse(localStorage.getItem('ml_hot')||'[]')); }
+catch(e){ return new Set(); }
+}
+function saveHot(){
+try { localStorage.setItem('ml_hot', JSON.stringify([...hotSet])); } catch(e){}
+}
+function isHot(v){ return hotSet.has(v.vesselName); }
+function toggleHot(name, ev){
+if(ev){ ev.stopPropagation(); }
+if(hotSet.has(name)) hotSet.delete(name); else hotSet.add(name);
+saveHot();
+updateHotCount();
+renderList();
+}
+function updateHotCount(){
+const el=document.getElementById('hotCount');
+if(el) el.textContent = hotSet.size ? hotSet.size : '';
+}
+function openHotList(){
+document.getElementById('app').style.display='none';
+document.getElementById('detail').classList.remove('show');
+document.getElementById('hotView').classList.add('show');
+renderHotList();
+// auto-refresh every 3 minutes while the hot view is open
+if(hotRefreshTimer) clearInterval(hotRefreshTimer);
+hotRefreshTimer=setInterval(async()=>{
+try{
+const [tn,tc,vy]=await Promise.all([fetchSheet(GIDS.tonnage),fetchSheet(GIDS.tct),fetchSheet(GIDS.voy)]);
+vessels=parseTonnage(tn); tct=parseTCT(tc); voy=parseVOY(vy);
+renderHotList();
+}catch(e){/* keep showing last good data */}
+}, 180000);
+}
+function closeHotList(){
+document.getElementById('hotView').classList.remove('show');
+document.getElementById('app').style.display='flex';
+if(hotRefreshTimer){ clearInterval(hotRefreshTimer); hotRefreshTimer=null; }
+}
+function renderHotList(){
+const wrap=document.getElementById('hotScroll');
+const hotVessels=vessels.filter(v=>hotSet.has(v.vesselName));
+const now=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+document.getElementById('hotUpdated').textContent='Updated '+now+' · '+hotVessels.length+' vessel'+(hotVessels.length===1?'':'s');
+if(!hotVessels.length){
+wrap.innerHTML=`<div class="hot-empty"><div style="font-size:48px;margin-bottom:16px;">☆</div><div>No hot vessels yet.</div><div style="font-size:15px;color:var(--text3);margin-top:8px;">Tap the ☆ star on any vessel to add it here.</div></div>`;
+return;
+}
+wrap.innerHTML=hotVessels.map(v=>{
+const info=dwtInfo(v.dwt);
+const mTCT=tct.filter(o=>cargoMatchesVessel(o,v));
+const mVOY=voy.filter(o=>cargoMatchesVessel(o,v));
+const cargoCard=(o,type)=>{
+const isTCT=type==='TCT';
+const portA=isTCT?(o.delivery||'TBC'):(o.loadPort||'TBC');
+const portB=isTCT?(o.redelivery||'TBC'):(o.dischargePort||'TBC');
+return `<div class="hot-cargo">
+<div class="hot-cargo-head"><span class="hot-cargo-acct">${o.account||'TBC'}</span><span class="cargo-type-badge ${isTCT?'tct-badge':'voy-badge'}">${type}</span></div>
+<div class="hot-cargo-row"><span class="hot-lbl">Cargo</span><span class="hot-val">${o.cargo||'TBC'}</span><span class="hot-size">${o.tonnage||'TBC'}</span></div>
+<div class="hot-cargo-row"><span class="hot-lbl">Route</span><span class="hot-val">${portA} → ${portB}</span></div>
+<div class="hot-cargo-row"><span class="hot-lbl">Laycan</span><span class="hot-val">${o.laycan||'TBC'}</span></div>
+</div>`;
+};
+const allCargo=[...mTCT.map(o=>cargoCard(o,'TCT')),...mVOY.map(o=>cargoCard(o,'VOY'))].join('');
+const cargoCount=mTCT.length+mVOY.length;
+return `<div class="hot-card">
+<div class="hot-card-head">
+<div class="hot-vessel">
+<div class="hot-vessel-name">${v.vesselName}</div>
+<div class="hot-vessel-sub">${v.owner||'—'}${v.blt?' · Built '+v.blt:''}</div>
+</div>
+<div class="dwt-badge ${info.cls}" style="width:56px;height:56px;font-size:15px;"><span>${info.label}</span><span style="font-size:11px;">${info.size}</span></div>
+</div>
+<div class="hot-specs">
+<div class="hot-spec"><span class="hot-spec-l">DWT</span><span class="hot-spec-v">${v.dwt?v.dwt.toLocaleString():'—'}</span></div>
+<div class="hot-spec"><span class="hot-spec-l">Open Port</span><span class="hot-spec-v">${v.bssPort||'—'}</span></div>
+<div class="hot-spec"><span class="hot-spec-l">Open Date</span><span class="hot-spec-v">${v.open||'—'}</span></div>
+<div class="hot-spec"><span class="hot-spec-l">Region</span><span class="hot-spec-v">${v.region||'—'}</span></div>
+</div>
+${v.notes?`<div class="hot-note"><span class="hot-note-lbl">▶ NOTES</span> ${v.notes}</div>`:''}
+<div class="hot-cargo-title">Matched Cargoes (${cargoCount})</div>
+${cargoCount?`<div class="hot-cargo-grid">${allCargo}</div>`:`<div class="hot-nocargo">No matching cargoes right now</div>`}
+</div>`;
+}).join('');
+}
 let sortField='default', sortDir='asc', dwtFilter='all', bltFilter='all';
 function buildSortBar(){
   const bar=document.getElementById('sortBar');
@@ -631,6 +768,7 @@ document.getElementById('topMeta').textContent = 'Updated ' + now;
 updateStats();
 buildFilters();
 buildSortBar();
+updateHotCount();
 renderList();
 showToast('Loaded · ' + vessels.length + ' vessels · ' + (tct.length+voy.length) + ' cargo orders');
 }
@@ -712,11 +850,14 @@ for (const v of groups[r]) wrap.appendChild(vesselRow(v));
 function vesselRow(v){
 const info=dwtInfo(v.dwt); const el=document.createElement('div'); el.className='vessel-row';
 const isSpot=v.open&&v.open.toUpperCase()==='SPOT';
+const hot=isHot(v);
 el.innerHTML=`<div class="dwt-badge ${info.cls}"><span>${info.label}</span><span style="font-size:9px;">${info.size}</span></div>
 <div class="vessel-info"><div class="vessel-name">${v.vesselName}${v.notes?` <svg class="note-flag" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`:''}</div>
 <div class="vessel-meta"><span>${v.owner||'—'}</span>${v.blt?`<span>· ${v.blt}</span>`:''}</div></div>
 <div class="vessel-open"><div class="open-date">${v.open||'—'}</div><div class="open-port">${v.bssPort||''}</div>
-${isSpot?`<div class="status-pill status-spot">Spot</div>`:''}</div>`;
+${isSpot?`<div class="status-pill status-spot">Spot</div>`:''}</div>
+<button class="star-btn ${hot?'starred':''}" title="Mark as hot" aria-label="Mark as hot">${hot?'★':'☆'}</button>`;
+el.querySelector('.star-btn').addEventListener('click',(ev)=>toggleHot(v.vesselName,ev));
 el.addEventListener('click',()=>showDetail(v)); return el;
 }
 function renderCargo(wrap,orders,type){
@@ -757,7 +898,12 @@ el.style.cursor="pointer"; el.addEventListener("click",()=>showCargoDetail(o,typ
 }
 }
 // ── DETAIL ──
+function toggleHotDetail(ev){
+if(ev) ev.stopPropagation();
+if(window.__curVessel){ toggleHot(window.__curVessel.vesselName); showDetail(window.__curVessel); }
+}
 function showDetail(vessel){
+window.__curVessel = vessel;
 document.getElementById('app').style.display='none';
 document.getElementById('detail').classList.add('show');
 document.getElementById('detailBreadcrumb').textContent=vessel.region||'';
@@ -791,7 +937,7 @@ const total=matchedTCT.length+matchedVOY.length;
 document.getElementById('detailScroll').innerHTML=`
 <div class="detail-header">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;">
-<div class="detail-vessel-name">${vessel.vesselName}</div>
+<div class="detail-vessel-name">${vessel.vesselName} <button class="star-btn star-detail ${isHot(vessel)?'starred':''}" onclick="toggleHotDetail(event)">${isHot(vessel)?'★':'☆'}</button></div>
 <div class="dwt-badge ${info.cls}" style="flex-shrink:0;"><span>${info.label}</span><span style="font-size:9px;">${info.size}</span></div>
 </div>
 <div class="detail-owner">${vessel.owner||'—'}</div>
