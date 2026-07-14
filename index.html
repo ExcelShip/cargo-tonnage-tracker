@@ -95,6 +95,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:1
 .open-port{font-size:10px;color:var(--text3);margin-top:2px;}
 .status-pill{font-size:10px;padding:1px 6px;border-radius:10px;margin-top:3px;display:inline-block;font-family:var(--mono);}
 .status-spot{background:var(--green-dim);color:var(--green);}
+.status-match{background:var(--accent-dim);color:var(--accent);font-weight:600;}
 .status-subs{background:var(--amber-dim);color:var(--amber);}
 .status-update{background:var(--coral-dim);color:var(--coral);}
 .cargo-row{padding:11px 14px;border-bottom:1px solid var(--border);background:var(--bg);}
@@ -942,11 +943,13 @@ function vesselRow(v){
 const info=dwtInfo(v.dwt); const el=document.createElement('div'); el.className='vessel-row';
 const isSpot=v.open&&v.open.toUpperCase()==='SPOT';
 const hot=isHot(v);
+const nMatch=tct.filter(o=>cargoMatchesVessel(o,v)).length+voy.filter(o=>cargoMatchesVessel(o,v)).length;
 el.innerHTML=`<div class="dwt-badge ${info.cls}"><span>${info.label}</span><span style="font-size:9px;">${info.size}</span></div>
 <div class="vessel-info"><div class="vessel-name">${v.vesselName}${v.notes?` <svg class="note-flag" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`:''}</div>
 <div class="vessel-meta"><span>${v.owner||'—'}</span>${v.blt?`<span>· ${v.blt}</span>`:''}</div></div>
 <div class="vessel-open"><div class="open-date">${v.open||'—'}</div><div class="open-port">${v.bssPort||''}</div>
-${isSpot?`<div class="status-pill status-spot">Spot</div>`:''}</div>
+${isSpot?`<div class="status-pill status-spot">Spot</div>`:''}
+${nMatch?`<div class="status-pill status-match">⚓ ${nMatch} cargo${nMatch>1?'s':''}</div>`:''}</div>
 <button class="star-btn ${hot?'starred':''}" title="Mark as hot" aria-label="Mark as hot">${hot?'★':'☆'}</button>`;
 el.querySelector('.star-btn').addEventListener('click',(ev)=>toggleHot(v.vesselName,ev));
 el.addEventListener('click',()=>showDetail(v)); return el;
