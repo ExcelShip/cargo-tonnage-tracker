@@ -895,7 +895,7 @@ setTimeout(()=>t.classList.remove('show'),2500);
 // ── FILTERS ──
 function buildFilters() {
 const regions=['all',...new Set(vessels.map(v=>v.region).filter(Boolean))];
-const ordered=['all',...regionOrder().filter(r=>regions.includes(r)),
+const ordered=['all',...regionOrder(),
 ...regions.filter(r=>r!=='all'&&!regionOrder().includes(r))];
 const unique=[...new Set(ordered)];
 const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI',
