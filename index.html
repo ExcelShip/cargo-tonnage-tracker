@@ -525,13 +525,13 @@ ${cargoCount?`<div class="hot-cargo-grid">${allCargo}</div>`:`<div class="hot-no
 </div>`;
 }).join('');
 }
-let sortField='default', sortDir='asc', dwtFilter='all', bltFilter='all';
+let sortField='default', sortDir='asc', dwtFilter='all', bltFilter='all', matchFilter=false;
 function buildSortBar(){
   const bar=document.getElementById('sortBar');
   const s=(f,label)=>`<button class="sort-btn${sortField===f?' active':''}" onclick="setSort('${f}')">${label}${sortField===f&&f!=='default'?' '+(sortDir==='asc'?'↑':'↓'):''}</button>`;
   if(activeTab==='tonnage'){
     const bltOptions=[['all','All'],['2020','2020+'],['2015','2015–19'],['2010','2010–14'],['2000','2000–09'],['old','<2000']];
-    bar.innerHTML=`<span class="sort-label">Sort</span>${s('default','Default')}${s('dwt','DWT')}${s('open','Open Date')}${s('name','Name')}<div class="sort-divider"></div><span class="sort-label">DWT</span>${['all','hs','hm','sm','pm','cp'].map(c=>`<button class="sort-btn${dwtFilter===c?' active':''}" onclick="setDwtFilter('${c}')">${c==='all'?'All':c.toUpperCase()}</button>`).join('')}<div class="sort-divider"></div><span class="sort-label">Built</span>${bltOptions.map(([v,l])=>`<button class="sort-btn${bltFilter===v?' active':''}" onclick="setBltFilter('${v}')">${l}</button>`).join('')}`;
+    bar.innerHTML=`<span class="sort-label">Sort</span>${s('default','Default')}${s('dwt','DWT')}${s('open','Open Date')}${s('name','Name')}<div class="sort-divider"></div><span class="sort-label">DWT</span>${['all','hs','hm','sm','pm','cp'].map(c=>`<button class="sort-btn${dwtFilter===c?' active':''}" onclick="setDwtFilter('${c}')">${c==='all'?'All':c.toUpperCase()}</button>`).join('')}<div class="sort-divider"></div><span class="sort-label">Built</span>${bltOptions.map(([v,l])=>`<button class="sort-btn${bltFilter===v?' active':''}" onclick="setBltFilter('${v}')">${l}</button>`).join('')}<div class="sort-divider"></div><button class="sort-btn${matchFilter?' active':''}" onclick="toggleMatchFilter()">⚓ Matched</button>`;
   } else {
     bar.innerHTML=`<span class="sort-label">Sort</span>${s('default','Default')}${s('laycan','Laycan')}${s('tonnage','Tonnage')}${s('account','Account')}`;
   }
@@ -543,6 +543,7 @@ function setSort(f){
 }
 function setDwtFilter(c){dwtFilter=c;buildSortBar();renderList();}
 function setBltFilter(v){bltFilter=v;buildSortBar();renderList();}
+function toggleMatchFilter(){matchFilter=!matchFilter;buildSortBar();renderList();}
 // ── GOOGLE SHEETS CSV FETCH ──
 function sheetURL(gid) {
 return `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
@@ -906,7 +907,7 @@ document.getElementById('filterRow').innerHTML=unique.map(r=>
 ).join('');
 }
 function setRegion(r,el){activeRegion=r;document.querySelectorAll('.fpill').forEach(p=>p.classList.remove('active'));el.classList.add('active');renderList();}
-function setTab(t){activeTab=t;sortField='default';sortDir='asc';bltFilter='all';document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.getElementById('dwtLegend').style.display=t==='tonnage'?'flex':'none';buildSortBar();renderList();}
+function setTab(t){activeTab=t;sortField='default';sortDir='asc';bltFilter='all';matchFilter=false;document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));document.getElementById('tab-'+t).classList.add('active');document.getElementById('dwtLegend').style.display=t==='tonnage'?'flex':'none';buildSortBar();renderList();}
 function onSearch(){searchQuery=document.getElementById('searchInput').value.toLowerCase();document.getElementById('clearBtn').classList.toggle('show',searchQuery.length>0);renderList();}
 function clearSearch(){searchQuery='';document.getElementById('searchInput').value='';document.getElementById('clearBtn').classList.remove('show');renderList();}
 // ── RENDER ──
@@ -926,7 +927,8 @@ const qMatch=!searchQuery||v.vesselName.toLowerCase().includes(searchQuery)||
 (v.bssPort||'').toLowerCase().includes(searchQuery)||
 (v.owner||'').toLowerCase().includes(searchQuery)||
 (v.region||'').toLowerCase().includes(searchQuery);
-return rMatch&&dMatch&&bMatch&&qMatch;
+const mMatch=!matchFilter||tct.some(o=>cargoMatchesVessel(o,v))||voy.some(o=>cargoMatchesVessel(o,v));
+return rMatch&&dMatch&&bMatch&&qMatch&&mMatch;
 });
 if(sortField==='dwt')filtered.sort((a,b)=>sortDir==='asc'?(a.dwt||0)-(b.dwt||0):(b.dwt||0)-(a.dwt||0));
 else if(sortField==='name')filtered.sort((a,b)=>sortDir==='asc'?a.vesselName.localeCompare(b.vesselName):b.vesselName.localeCompare(a.vesselName));
