@@ -367,6 +367,8 @@ const BALTIC_GID = '517926540';  // BALTIC tab gid
 // Leave '' to fall back to device-local stars only.
 const HOT_WRITE_URL = 'https://script.google.com/macros/s/AKfycbyQ-UOZn3uGTxW1xRpWFsZyrA61Z-vsLXUIU6RzvdwwWf8tECBMEbiZYhN85URXnb0/exec';
 const REGIONS_ORDER = ['WCI - PG','R. SEA','ECI-BDESH','SCHINA','CHINA','VIETNAM','PACIFIC','INDONESIA','MED','AFRICA','ATLANTIC'];
+let regionSeq=[]; // region order as it appears in the sheet (filled by parseTonnage)
+function regionOrder(){ return regionSeq.length?regionSeq:REGIONS_ORDER; }
 let vessels=[], tct=[], voy=[];
 let baltic=[];
 // Parse BALTIC tab. Expected columns: A=Index name, B=Value, C=Change (optional, e.g. "+12" or "-4")
@@ -630,15 +632,16 @@ if (!f || f.startsWith('MV ') || f.startsWith('Daily') || f==='Vessel Name' || f
 return !row.slice(1,6).some(c=>c!=null&&String(c).trim()!=='') && f.length>1 && f.length<40;
 }
 function parseTonnage(rows) {
-const result=[]; let region='';
+const result=[]; let region=''; regionSeq=[];
+const noteRegion=r=>{ if(r&&!regionSeq.includes(r)) regionSeq.push(r); };
 for (const row of rows) {
 const f = String(row[0]||'').trim();
 if (!f) continue;
-if (f.startsWith('MV ')) {
+if (f.startsWith('MV ')||/^MV[A-Z]/.test(f)) {
 const dwtVal = String(row[1]||'').replace(/,/g,'').replace(/[^0-9]/g,'');
 const dwt = dwtVal ? parseInt(dwtVal,10) : null;
 result.push({
-vesselName:f, dwt:(dwt&&!isNaN(dwt))?dwt:null,
+vesselName:f.replace(/^MV(?=[A-Z])/,'MV '), dwt:(dwt&&!isNaN(dwt))?dwt:null,
 blt:row[2]?parseInt(String(row[2]).replace(/[^0-9]/g,'')):null,
 bssPort:String(row[3]||'').trim(),
 region:region||String(row[4]||'').trim(),
@@ -648,8 +651,11 @@ comments:String(row[7]||'').trim(),
 sheetHot:(function(){const h=String(row[8]||'').trim().toLowerCase();return h==='x'||h==='hot'||h==='1'||h==='yes'||h==='y'||h==='true';})(),
 notes:String(row[9]||'').trim(),
 });
-} else if (!f.startsWith('Daily')&&!f.includes('Vessel')&&!f.includes('DWT')&&!row.slice(1,5).some(x=>x!=null&&String(x).trim()!=='')) {
-region = f;
+} else if (f.startsWith('Daily')) {
+const m=f.match(/^Daily\s+Tonnage\s+List\s+(.+)$/i);
+if (m&&m[1].trim()){ region=m[1].trim(); noteRegion(region); }
+} else if (!f.includes('Vessel')&&!f.includes('DWT')&&!row.slice(1,5).some(x=>x!=null&&String(x).trim()!=='')) {
+region = f; noteRegion(region);
 }
 }
 return result;
@@ -889,8 +895,8 @@ setTimeout(()=>t.classList.remove('show'),2500);
 // ── FILTERS ──
 function buildFilters() {
 const regions=['all',...new Set(vessels.map(v=>v.region).filter(Boolean))];
-const ordered=['all',...REGIONS_ORDER.filter(r=>regions.includes(r)),
-...regions.filter(r=>r!=='all'&&!REGIONS_ORDER.includes(r))];
+const ordered=['all',...regionOrder().filter(r=>regions.includes(r)),
+...regions.filter(r=>r!=='all'&&!regionOrder().includes(r))];
 const unique=[...new Set(ordered)];
 const labels={'all':'All','WCI - PG':'WCI–PG','R. SEA':'R.Sea','ECI-BDESH':'ECI',
 'SCHINA':'S.China','CHINA':'China','VIETNAM':'Vietnam','PACIFIC':'Pacific','INDONESIA':'Indo',
@@ -931,7 +937,7 @@ const isSorted=sortField!=='default';
 if (activeRegion==='all'&&!searchQuery&&!isSorted&&dwtFilter==='all'){
 const groups={};
 for (const v of filtered){const r=v.region||'Other';if(!groups[r])groups[r]=[];groups[r].push(v);}
-const order=[...REGIONS_ORDER,...Object.keys(groups).filter(r=>!REGIONS_ORDER.includes(r))];
+const order=[...regionOrder(),...Object.keys(groups).filter(r=>!regionOrder().includes(r))];
 for (const r of order){
 if (!groups[r]) continue;
 const div=document.createElement('div');div.className='region-divider';div.textContent=r;wrap.appendChild(div);
